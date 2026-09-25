@@ -15,11 +15,11 @@ export function CameraToggle() {
       >
         {cameraMode ? "カメラ準備を解除" : "カメラ準備を試す"}
       </button>
-      <span className={styles.status}>
+      <p className={styles.status} aria-live="polite">
         {cameraMode
           ? "端末側のカメラ連携を追加する準備ができています。"
           : "現在はUIスケルトンのみです。"}
-      </span>
+      </p>
     </div>
   );
 }
