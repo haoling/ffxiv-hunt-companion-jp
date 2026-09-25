@@ -1,6 +1,4 @@
-"use client";
-
-import { useState } from "react";
+import { CameraToggle } from "./camera-toggle";
 import styles from "./page.module.css";
 
 const roadmap = [
@@ -10,8 +8,6 @@ const roadmap = [
 ];
 
 export default function Home() {
-  const [cameraMode, setCameraMode] = useState(false);
-
   return (
     <main className={styles.page}>
       <section className={styles.hero}>
@@ -21,20 +17,7 @@ export default function Home() {
           モブハント手配書の認識とルート案内をブラウザだけで実現するための、
           クライアントサイド専用スケルトンです。
         </p>
-        <div className={styles.actions}>
-          <button
-            type="button"
-            onClick={() => setCameraMode((current) => !current)}
-            className={styles.primaryButton}
-          >
-            {cameraMode ? "カメラ準備を解除" : "カメラ準備を試す"}
-          </button>
-          <span className={styles.status}>
-            {cameraMode
-              ? "端末側のカメラ連携を追加する準備ができています。"
-              : "現在はUIスケルトンのみです。"}
-          </span>
-        </div>
+        <CameraToggle />
       </section>
 
       <section className={styles.card}>
