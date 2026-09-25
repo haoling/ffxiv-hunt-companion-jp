@@ -16,4 +16,4 @@ GitHub Pages 向けの静的エクスポートを行います。
 npm run build
 ```
 
-本番ビルドでは `/ffxiv-hunt-companion-jp` をベースパスとして出力し、`out/` ディレクトリを GitHub Pages にデプロイできます。
+GitHub Actions のデプロイ workflow では、GitHub Pages が要求するベースパスを環境変数から自動で注入し、`out/` ディレクトリをそのままデプロイできます。ローカルビルドではベースパスなしで確認できます。
