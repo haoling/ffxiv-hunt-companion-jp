@@ -19,6 +19,7 @@ npm install
 npm run dev       # 開発サーバー起動 (http://localhost:3000)
 npm run build     # next build → 静的エクスポート (out/)
 npm run lint      # eslint
+npm run build:data  # public/data/hunts.json を再生成（手順は docs/m1/REPORT.md）
 ```
 
 - テストランナーはまだ導入していない。変更後は最低限 `npm run lint` と `npm run build` が通ることを確認する。
