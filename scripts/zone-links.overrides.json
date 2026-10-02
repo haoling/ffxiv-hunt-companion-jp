@@ -38,18 +38,6 @@
       "to": 211,
       "reason": "アバラシア雲海から降りるには飛行が必要",
       "verified": true
-    },
-    {
-      "from": 212,
-      "to": 214,
-      "reason": "ドラヴァニア雲海へは飛行で入る",
-      "verified": false
-    },
-    {
-      "from": 214,
-      "to": 212,
-      "reason": "ドラヴァニア雲海から降りるには飛行が必要",
-      "verified": false
     }
   ],
   "add": []
