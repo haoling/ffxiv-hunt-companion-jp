@@ -1,0 +1,296 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+  color: #f1f5f9;
+}
+
+.header,
+.main,
+.footer {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-top: 12px;
+  padding-bottom: 8px;
+  background: #0f172a;
+}
+
+.header h1 {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.tab,
+.tabActive {
+  min-height: 44px;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  background: transparent;
+  color: #cbd5e1;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tabActive {
+  background: #7c3aed;
+  border-color: #7c3aed;
+  color: #fff;
+}
+
+.main {
+  flex: 1;
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  padding-top: 12px;
+  padding-bottom: 24px;
+}
+
+.footer {
+  padding-top: 12px;
+  padding-bottom: 24px;
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.card {
+  padding: 16px;
+  border: 1px solid #334155;
+  border-radius: 14px;
+  background: #1e293b;
+  display: grid;
+  gap: 12px;
+}
+
+.card h2 {
+  font-size: 1.05rem;
+}
+
+.badge {
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #334155;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.muted,
+.note {
+  color: #94a3b8;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.warn {
+  color: #fbbf24;
+  font-size: 0.9rem;
+}
+
+.list {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.row,
+.rowDone {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #0f172a;
+}
+
+.rowDone {
+  opacity: 0.55;
+}
+
+.rowDone .rowTitle {
+  text-decoration: line-through;
+}
+
+.check,
+.radio {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.check input,
+.radio input {
+  width: 22px;
+  height: 22px;
+  margin-top: 2px;
+  flex: none;
+  accent-color: #8b5cf6;
+}
+
+.radios {
+  display: grid;
+  gap: 10px;
+}
+
+.radio {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #0f172a;
+}
+
+.rowBody {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.rowTitle {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.rowSub {
+  color: #94a3b8;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.tag {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: #b45309;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.field {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
+  color: #cbd5e1;
+}
+
+.fieldRow {
+  display: flex;
+  gap: 8px;
+}
+
+.field input,
+.field select,
+.killsSelect {
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid #475569;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #f1f5f9;
+  width: 100%;
+}
+
+.killsSelect {
+  width: auto;
+  flex: none;
+}
+
+.smallButton,
+.dangerButton,
+.iconButton {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  background: #7c3aed;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  flex: none;
+}
+
+.smallButton:disabled {
+  background: #334155;
+  color: #94a3b8;
+  cursor: default;
+}
+
+.dangerButton {
+  justify-self: start;
+  background: transparent;
+  border: 1px solid #b91c1c;
+  color: #fca5a5;
+}
+
+.iconButton {
+  min-width: 44px;
+  padding: 0;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 1.2rem;
+}
+
+.linkButton {
+  border: 0;
+  background: none;
+  color: #c4b5fd;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 8px 4px;
+}
+
+.steps {
+  list-style: none;
+  display: grid;
+  gap: 16px;
+}
+
+.step h3 {
+  font-size: 1rem;
+  margin-bottom: 6px;
+  overflow-wrap: anywhere;
+}
+
+.legs {
+  list-style: disc;
+  margin: 0 0 8px 20px;
+  color: #94a3b8;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.stops {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.stopPlace {
+  display: block;
+  margin-bottom: 4px;
+  color: #c4b5fd;
+  font-weight: 700;
+  font-size: 0.9rem;
+}

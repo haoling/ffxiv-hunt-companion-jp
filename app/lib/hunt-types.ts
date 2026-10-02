@@ -83,3 +83,26 @@ export type HuntData = {
   aetherytes: Aetheryte[];
   cities: City[];
 };
+
+/** 取り込んだ手配書の 1 行（ユーザーの状態。localStorage に保存する） */
+export type BillEntry = {
+  targetId: number;
+  neededKills: number;
+  done: boolean;
+  source: "ocr" | "manual";
+  /** ISO 日時。リセットの判定に使う */
+  addedAt: string;
+};
+
+export type GrandCompany = "maelstrom" | "twinAdder" | "immortalFlames";
+
+/** 移動方法の好み（PLAN §8.1）。テレポ優先／飛行移動／徒歩移動 */
+export type TravelPreference = "teleport" | "fly" | "walk";
+
+/** 個人設定（localStorage に保存する） */
+export type UserSettings = {
+  grandCompany?: GrandCompany;
+  /** 最後に使った出発地（City.id） */
+  defaultCityId?: string;
+  travelPreference: TravelPreference;
+};
