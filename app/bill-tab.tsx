@@ -5,7 +5,7 @@ import styles from "./hunt-app.module.css";
 import { huntIndex, normalizeName } from "./lib/hunt-data";
 import type { Expansion, HuntTarget } from "./lib/hunt-types";
 import { formatResetTime, nextResetTime } from "./lib/reset";
-import { addEntry, clearEntries, removeEntry, toggleDone } from "./lib/user-state";
+import { addEntry, clearDone, clearEntries, removeEntry, toggleDone } from "./lib/user-state";
 import { useBills } from "./use-user-state";
 
 const EXPANSION_LABELS: Partial<Record<Expansion, string>> = {
@@ -69,8 +69,13 @@ export function BillTab() {
           </ul>
         )}
         <p className={styles.note}>
-          次のリセット（自動で消えます）: デイリー {formatResetTime(nextResetTime("daily", now))} ／ エリート {formatResetTime(nextResetTime("elite", now))}（日本時間）
+          次に手配書を受注できる時刻（リセット）: デイリー {formatResetTime(nextResetTime("daily", now))} ／ エリート {formatResetTime(nextResetTime("elite", now))}（日本時間）
         </p>
+        {doneCount > 0 && (
+          <button type="button" className={styles.smallButton} onClick={clearDone}>
+            完了済みを削除
+          </button>
+        )}
         {entries.length > 0 && (
           <button
             type="button"

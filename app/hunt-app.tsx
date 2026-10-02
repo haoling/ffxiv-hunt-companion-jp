@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { BillTab } from "./bill-tab";
 import styles from "./hunt-app.module.css";
-import { huntIndex } from "./lib/hunt-data";
-import { purgeExpired } from "./lib/user-state";
 import { RouteTab } from "./route-tab";
 import { SettingsTab } from "./settings-tab";
 import { useHydrated } from "./use-user-state";
@@ -17,25 +15,9 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "settings", label: "設定" },
 ];
 
-const kindOf = (targetId: number) => huntIndex.targets.get(targetId)?.kind;
-
 export function HuntApp() {
   const [tab, setTab] = useState<Tab>("bills");
   const hydrated = useHydrated();
-
-  // リセット時刻を過ぎた手配書を自動で消す。開いたとき・1 分ごと・画面に戻ったときに確認する
-  useEffect(() => {
-    purgeExpired(kindOf);
-    const timer = setInterval(() => purgeExpired(kindOf), 60_000);
-    const onVisible = () => {
-      if (document.visibilityState === "visible") purgeExpired(kindOf);
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
-  }, []);
 
   return (
     <div className={styles.app}>

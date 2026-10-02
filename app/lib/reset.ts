@@ -1,6 +1,7 @@
-// デイリー／ウィークリーのリセット時刻（PLAN §9、§13）。時刻はゲーム内での確認待ち（docs/m2/CHECKLIST.md）。
+// デイリー／ウィークリーのリセット時刻（PLAN §9、§13。ゲーム内で確認済み）。
+// リセットは「次の手配書を受注できるようになる時刻」で、受注済みの手配書は消えない。
 
-import type { BillEntry, HuntTarget } from "./hunt-types";
+import type { HuntTarget } from "./hunt-types";
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
@@ -26,12 +27,6 @@ export function lastResetTime(kind: HuntTarget["kind"], now: number): number {
 /** 次のリセット時刻。エポックミリ秒 */
 export function nextResetTime(kind: HuntTarget["kind"], now: number): number {
   return lastResetTime(kind, now) + (kind === "daily" ? DAY : 7 * DAY);
-}
-
-/** 手配書の行が、追加後のリセットを過ぎて期限切れになっているか */
-export function isExpired(entry: BillEntry, kind: HuntTarget["kind"], now: number): boolean {
-  const added = Date.parse(entry.addedAt);
-  return Number.isNaN(added) || added < lastResetTime(kind, now);
 }
 
 /** リセット時刻を JST で表示する（例: 10/3 0:00） */

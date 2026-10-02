@@ -2,7 +2,6 @@
 
 import { createStore } from "./create-store";
 import type { BillEntry, GrandCompany, HuntTarget, TravelPreference, UserSettings } from "./hunt-types";
-import { isExpired } from "./reset";
 
 const TRAVEL_PREFERENCES: TravelPreference[] = ["teleport", "fly", "walk"];
 const GRAND_COMPANIES: GrandCompany[] = ["maelstrom", "twinAdder", "immortalFlames"];
@@ -73,12 +72,7 @@ export function updateSettings(patch: Partial<UserSettings>) {
   settingsStore.update((s) => ({ ...s, ...patch }));
 }
 
-/** リセット時刻を過ぎた手配書の行を取り除く（日次はデイリー、週次はエリート） */
-export function purgeExpired(kindOf: (targetId: number) => HuntTarget["kind"] | undefined, now = Date.now()) {
-  const bills = billStore.getSnapshot();
-  const kept = bills.filter((b) => {
-    const kind = kindOf(b.targetId);
-    return kind !== undefined && !isExpired(b, kind, now);
-  });
-  if (kept.length !== bills.length) billStore.update(() => kept);
+/** 完了済みの行をすべて削除する */
+export function clearDone() {
+  billStore.update((bills) => bills.filter((b) => !b.done));
 }

@@ -90,7 +90,7 @@ export type BillEntry = {
   neededKills: number;
   done: boolean;
   source: "ocr" | "manual";
-  /** ISO 日時。リセットの判定に使う */
+  /** ISO 日時（追加した時刻） */
   addedAt: string;
 };
 
