@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "lint": "eslint"
+    "lint": "eslint",
+    "build:data": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/build-data.ts"
   },
   "dependencies": {
     "next": "16.3.6",

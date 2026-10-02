@@ -1,0 +1,44 @@
+{
+  "$comment": "MapMarker から自動で取り出したエリア間のつながり（Zone.exits）の補正リスト。scripts/build-data.ts が読む。remove: from → to の出口をすべて除く。requiresFlying: from → to の出口を「飛行が必要」にする。add: 出口を足す。verified が false のものは、ゲーム内での確認がまだ（docs/m1/CHECKLIST.md）。",
+  "remove": [
+    {
+      "from": 20,
+      "to": 12,
+      "reason": "船（ベスパーベイ ↔ リムサ・ロミンサ）。徒歩にも飛行にも含めない",
+      "verified": true
+    },
+    {
+      "from": 12,
+      "to": 20,
+      "reason": "船（リムサ・ロミンサ ↔ ベスパーベイ）。徒歩にも飛行にも含めない",
+      "verified": true
+    },
+    {
+      "from": 12,
+      "to": 370,
+      "reason": "船（リムサ・ロミンサ ↔ クガネ）。徒歩にも飛行にも含めない",
+      "verified": true
+    },
+    {
+      "from": 370,
+      "to": 12,
+      "reason": "船（クガネ ↔ リムサ・ロミンサ）。徒歩にも飛行にも含めない",
+      "verified": true
+    }
+  ],
+  "requiresFlying": [
+    {
+      "from": 211,
+      "to": 215,
+      "reason": "アバラシア雲海へは飛行で入る",
+      "verified": true
+    },
+    {
+      "from": 215,
+      "to": 211,
+      "reason": "アバラシア雲海から降りるには飛行が必要",
+      "verified": true
+    }
+  ],
+  "add": []
+}
