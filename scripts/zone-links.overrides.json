@@ -5,25 +5,25 @@
       "from": 20,
       "to": 12,
       "reason": "船（ベスパーベイ ↔ リムサ・ロミンサ）。徒歩にも飛行にも含めない",
-      "verified": false
+      "verified": true
     },
     {
       "from": 12,
       "to": 20,
       "reason": "船（リムサ・ロミンサ ↔ ベスパーベイ）。徒歩にも飛行にも含めない",
-      "verified": false
+      "verified": true
     },
     {
       "from": 12,
       "to": 370,
       "reason": "船（リムサ・ロミンサ ↔ クガネ）。徒歩にも飛行にも含めない",
-      "verified": false
+      "verified": true
     },
     {
       "from": 370,
       "to": 12,
       "reason": "船（クガネ ↔ リムサ・ロミンサ）。徒歩にも飛行にも含めない",
-      "verified": false
+      "verified": true
     }
   ],
   "requiresFlying": [
