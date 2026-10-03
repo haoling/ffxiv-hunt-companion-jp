@@ -7,6 +7,17 @@ export type CropRect = { x: number; y: number; w: number; h: number };
 /** スクリーンショットから切り出す範囲。下部パネルは画面の下半分にあるので、そこを広めに取る（読み取りはラベルの位置から値を探すので、多少の余計な部分は許される） */
 export const SCREENSHOT_CROP: CropRect = { x: 0.1, y: 0.45, w: 0.8, h: 0.55 };
 
+/** 画像全体（すでにパネルだけに切り抜かれたスクリーンショット用） */
+export const FULL_CROP: CropRect = { x: 0, y: 0, w: 1, h: 1 };
+
+/**
+ * スクリーンショットの切り出し範囲の候補を、試す順に返す。
+ * 横長の画像（縦横比 2.2 以上）はパネルだけを切り抜いたものとみなして全体を先に、そうでなければ画面の下部を先に試す。
+ */
+export function screenshotCrops(width: number, height: number): CropRect[] {
+  return width / height >= 2.2 ? [FULL_CROP, SCREENSHOT_CROP] : [SCREENSHOT_CROP, FULL_CROP];
+}
+
 /** カメラのプレビュー（横長の帯）の縦横比。幅:高さ（CSS の .strip と合わせる） */
 export const STRIP_ASPECT = 3;
 

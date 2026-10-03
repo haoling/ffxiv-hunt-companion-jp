@@ -5,7 +5,7 @@ import { placeText } from "./bill-tab";
 import styles from "./hunt-app.module.css";
 import { huntIndex } from "./lib/hunt-data";
 import type { HuntTarget } from "./lib/hunt-types";
-import { cropAndPrepare, SCREENSHOT_CROP, sourceSize, stripCrop } from "./lib/ocr-image";
+import { cropAndPrepare, screenshotCrops, sourceSize, stripCrop, type CropRect } from "./lib/ocr-image";
 import { MIN_ACCEPT_SCORE, matchTargets, parsePanelText, type Candidate, type ParsedPanel } from "./lib/ocr-match";
 import { addEntry } from "./lib/user-state";
 import { useBills } from "./use-user-state";
@@ -56,15 +56,23 @@ export function ScanTab({ onOpenBills }: { onOpenBills: () => void }) {
     try {
       const bitmap = await createImageBitmap(blob);
       const size = sourceSize(bitmap);
-      const crop = origin === "camera" ? stripCrop(size.width, size.height) : SCREENSHOT_CROP;
-      const canvas = cropAndPrepare(bitmap, crop, { blurRadius: origin === "camera" ? 1 : 0 });
-      bitmap.close();
+      const crops = origin === "camera" ? [stripCrop(size.width, size.height)] : screenshotCrops(size.width, size.height);
       const { recognize } = await import("./lib/ocr-engine");
-      const text = await recognize(canvas, (p) =>
-        setStage((cur) => (cur.kind === "reading" ? { kind: "reading", progress: p.progress, status: STATUS_LABELS[p.status] ?? p.status } : cur)),
-      );
-      const panel = parsePanelText(text);
-      const candidates = matchTargets(huntIndex, panel);
+      const onProgress = (p: { status: string; progress: number }) =>
+        setStage((cur) => (cur.kind === "reading" ? { kind: "reading", progress: p.progress, status: STATUS_LABELS[p.status] ?? p.status } : cur));
+
+      // 範囲の候補を順に試し、確からしい候補が出たらそこで止める（出なければいちばん点数の高かったものを使う）
+      let best: { canvas: HTMLCanvasElement; text: string; panel: ParsedPanel; candidates: Candidate[] } | undefined;
+      for (const crop of crops as CropRect[]) {
+        const canvas = cropAndPrepare(bitmap, crop, { blurRadius: origin === "camera" ? 1 : 0 });
+        const text = await recognize(canvas, onProgress);
+        const panel = parsePanelText(text);
+        const candidates = matchTargets(huntIndex, panel);
+        if (!best || (candidates[0]?.score ?? 0) > (best.candidates[0]?.score ?? 0)) best = { canvas, text, panel, candidates };
+        if (panel.name && (candidates[0]?.score ?? 0) >= MIN_ACCEPT_SCORE) break;
+      }
+      bitmap.close();
+      const { canvas, text, panel, candidates } = best!;
       if (panel.page) {
         const page = panel.page;
         setPages((p) =>
