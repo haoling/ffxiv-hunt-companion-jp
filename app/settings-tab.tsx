@@ -3,9 +3,16 @@
 import styles from "./hunt-app.module.css";
 import { availableCities, GC_LABELS, TRAVEL_LABELS } from "./lib/cities";
 import { huntData } from "./lib/hunt-data";
-import type { GrandCompany, TravelPreference } from "./lib/hunt-types";
+import type { GrandCompany, ThemePreference, TravelPreference } from "./lib/hunt-types";
+import { LICENSE_LINKS } from "./lib/licenses";
 import { updateSettings } from "./lib/user-state";
 import { useSettings } from "./use-user-state";
+
+const THEME_LABELS: Record<ThemePreference, string> = {
+  auto: "端末の設定に合わせる",
+  light: "ライト",
+  dark: "ダーク",
+};
 
 export function SettingsTab() {
   const settings = useSettings();
@@ -67,6 +74,20 @@ export function SettingsTab() {
       </section>
 
       <section className={styles.card}>
+        <h2>表示</h2>
+        <div className={styles.radios} role="radiogroup" aria-label="表示テーマ">
+          {(Object.keys(THEME_LABELS) as ThemePreference[]).map((t) => (
+            <label key={t} className={styles.radio}>
+              <input type="radio" name="theme" checked={settings.theme === t} onChange={() => updateSettings({ theme: t })} />
+              <span className={styles.rowBody}>
+                <span className={styles.rowTitle}>{THEME_LABELS[t]}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.card}>
         <h2>データ</h2>
         <p className={styles.note}>
           対象の拡張: {expansions.join(" / ")}。生成元: ffxiv-datamining {sources.datamining}、Teamcraft {sources.teamcraft}（スキーマ v
@@ -74,6 +95,11 @@ export function SettingsTab() {
         </p>
         <p className={styles.note}>
           © SQUARE ENIX。FFXIV の著作権・商標は SQUARE ENIX に帰属します。FATE の座標は FFXIV Teamcraft（MIT License）のデータを使っています。
+          {LICENSE_LINKS.map((l) => (
+            <a key={l.href} href={l.href} target="_blank" rel="noreferrer" className={styles.footerLink}>
+              {l.label}
+            </a>
+          ))}
         </p>
       </section>
     </>
