@@ -110,4 +110,8 @@ export type UserSettings = {
   /** 最後に使った出発地（City.id） */
   defaultCityId?: string;
   travelPreference: TravelPreference;
+  /** 表示テーマ。"auto" は OS の設定に合わせる */
+  theme: ThemePreference;
 };
+
+export type ThemePreference = "auto" | "light" | "dark";

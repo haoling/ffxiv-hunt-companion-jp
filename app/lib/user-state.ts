@@ -2,13 +2,14 @@
 
 import { createStore } from "./create-store";
 import type { Position } from "./route-planner";
-import type { BillEntry, GrandCompany, HuntTarget, TravelPreference, UserSettings } from "./hunt-types";
+import type { BillEntry, GrandCompany, HuntTarget, ThemePreference, TravelPreference, UserSettings } from "./hunt-types";
 
 const TRAVEL_PREFERENCES: TravelPreference[] = ["teleport", "fly", "walk"];
+const THEMES: ThemePreference[] = ["auto", "light", "dark"];
 const GRAND_COMPANIES: GrandCompany[] = ["maelstrom", "twinAdder", "immortalFlames"];
 
 const EMPTY_BILLS: BillEntry[] = [];
-const DEFAULT_SETTINGS: UserSettings = { travelPreference: "teleport" };
+const DEFAULT_SETTINGS: UserSettings = { travelPreference: "teleport", theme: "auto" };
 
 function parseBills(raw: unknown): BillEntry[] {
   if (!Array.isArray(raw)) return EMPTY_BILLS;
@@ -41,6 +42,7 @@ function parseSettings(raw: unknown): UserSettings {
     grandCompany: GRAND_COMPANIES.find((g) => g === s.grandCompany),
     defaultCityId: typeof s.defaultCityId === "string" ? s.defaultCityId : undefined,
     travelPreference: TRAVEL_PREFERENCES.find((p) => p === s.travelPreference) ?? "teleport",
+    theme: THEMES.find((t) => t === s.theme) ?? "auto",
   };
 }
 

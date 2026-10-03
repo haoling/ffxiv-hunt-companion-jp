@@ -1,3 +1,63 @@
+/* 配色。既定はライト、OS の設定がダークなら自動でダーク。設定画面の選択（data-theme）が優先される */
+:root {
+  color-scheme: light;
+  --bg: #f8fafc;
+  --bg-end: #f1f5f9;
+  --text: #0f172a;
+  --text-soft: #334155;
+  --muted: #475569;
+  --surface: #ffffff;
+  --inset: #f1f5f9;
+  --line: #cbd5e1;
+  --line-strong: #94a3b8;
+  --accent: #6d28d9;
+  --accent-mark: #7c3aed;
+  --accent-text: #6d28d9;
+  --warn: #b45309;
+  --danger-line: #dc2626;
+  --danger-text: #b91c1c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0f172a;
+    --bg-end: #111827;
+    --text: #f1f5f9;
+    --text-soft: #cbd5e1;
+    --muted: #94a3b8;
+    --surface: #1e293b;
+    --inset: #0f172a;
+    --line: #334155;
+    --line-strong: #475569;
+    --accent: #7c3aed;
+    --accent-mark: #8b5cf6;
+    --accent-text: #c4b5fd;
+    --warn: #fbbf24;
+    --danger-line: #b91c1c;
+    --danger-text: #fca5a5;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f172a;
+  --bg-end: #111827;
+  --text: #f1f5f9;
+  --text-soft: #cbd5e1;
+  --muted: #94a3b8;
+  --surface: #1e293b;
+  --inset: #0f172a;
+  --line: #334155;
+  --line-strong: #475569;
+  --accent: #7c3aed;
+  --accent-mark: #8b5cf6;
+  --accent-text: #c4b5fd;
+  --warn: #fbbf24;
+  --danger-line: #b91c1c;
+  --danger-text: #fca5a5;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -10,6 +70,8 @@ html {
 
 body {
   min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
   font-family:
     "Hiragino Sans",
     "Yu Gothic UI",
@@ -30,4 +92,20 @@ select {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* キーボード操作の位置がわかるようにする */
+:focus-visible {
+  outline: 3px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
 }
