@@ -12,7 +12,9 @@ const fmt = (n: number) => n.toFixed(1);
 
 function travelHeading(part: TravelPart, zoneName: string): string {
   if (part.kind === "teleport") return `テレポ: ${part.aetheryteName}`;
-  const label = part.mode === "fly" ? "飛行" : part.mode === "walk" ? "徒歩" : "移動";
+  // 街の中しか通らない区間は、飛行移動の設定でも飛べないので「移動」と表示する
+  const flies = part.mode === "fly" && part.legs.some((leg) => leg.canFly);
+  const label = flies ? "飛行" : part.mode === "walk" ? "徒歩" : "移動";
   return `${label}: ${zoneName}へ`;
 }
 

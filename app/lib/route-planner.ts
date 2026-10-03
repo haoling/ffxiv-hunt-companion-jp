@@ -23,6 +23,8 @@ export type MoveLeg = {
   /** 出口の位置（ゲーム内のマップ座標） */
   exitX: number;
   exitY: number;
+  /** この区間の出発エリアで飛行できるか（街の中は飛行できない） */
+  canFly: boolean;
 };
 
 export type TravelPart =
@@ -209,6 +211,7 @@ function legsTo(index: HuntIndex, nodes: Map<string, GraphNode>, key: string): M
       toZoneName: index.zones.get(node.zoneId)?.name ?? "",
       exitX: node.viaExit.x,
       exitY: node.viaExit.y,
+      canFly: index.zones.get(node.viaExit.fromZoneId)?.kind === "field",
     });
   }
   return legs.reverse();
