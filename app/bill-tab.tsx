@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import styles from "./hunt-app.module.css";
-import { huntIndex, normalizeName } from "./lib/hunt-data";
+import { huntIndex, normalizeName, spawnText } from "./lib/hunt-data";
 import type { Expansion, HuntTarget } from "./lib/hunt-types";
 import { formatResetTime, nextResetTime } from "./lib/reset";
 import { targetPosition } from "./lib/route-planner";
@@ -17,11 +17,13 @@ const EXPANSION_LABELS: Partial<Record<Expansion, string>> = {
 
 const MAX_SEARCH_RESULTS = 30;
 
-/** 対象の場所の表示。位置は地域名で示す（エリートは地域名が無いのでエリア名だけ） */
+/** 対象の場所の表示。位置は地域名と、湧き位置の中心座標（あれば）で示す */
 export function placeText(t: HuntTarget): string {
   const zone = huntIndex.zones.get(t.zoneId)?.name ?? "";
   const region = t.regionId === undefined ? undefined : huntIndex.regions.get(t.regionId)?.name;
-  return region ? `${zone} ${region}` : `${zone}（湧き地点はエリア内のどこか）`;
+  const spawn = t.spawns?.length ? ` ${spawnText(t.spawns.slice(0, 1))}付近` : "";
+  if (region) return `${zone} ${region}${spawn}`;
+  return spawn ? `${zone}${spawn}` : `${zone}（湧き地点はエリア内のどこか）`;
 }
 
 export function BillTab() {
@@ -169,7 +171,7 @@ function AddTarget({ addedIds }: { addedIds: Set<number> }) {
                   {t.name}
                   {t.kind === "elite" && <span className={styles.tag}>エリート</span>}
                 </span>
-                <span className={styles.rowSub}>{query ? placeText(t) : (region ?? "エリア内のどこか")}</span>
+                <span className={styles.rowSub}>{query ? placeText(t) : `${region ?? "エリア内のどこか"}${t.spawns?.length ? ` ${spawnText(t.spawns.slice(0, 1))}付近` : ""}`}</span>
                 {t.fate && <span className={styles.rowSub}>FATE「{t.fate.name}」のボス</span>}
               </span>
               {t.neededKills.length > 1 && (
