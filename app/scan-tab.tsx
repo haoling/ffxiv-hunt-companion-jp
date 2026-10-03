@@ -14,8 +14,7 @@ import { useBills } from "./use-user-state";
 type Origin = "camera" | "file";
 
 type Stage =
-  | { kind: "start" }
-  | { kind: "camera" }
+  | { kind: "input" }
   | { kind: "reading"; progress: number; status: string }
   | { kind: "result"; origin: Origin; panel: ParsedPanel; candidates: Candidate[]; text: string; preview: string };
 
@@ -26,8 +25,26 @@ const STATUS_LABELS: Record<string, string> = {
   "recognizing text": "文字を認識中…",
 };
 
+/** 入力方法。スマホ（タッチ操作）の既定はカメラ、PC の既定はスクリーンショット */
+type Mode = Origin;
+
+function defaultMode(): Mode {
+  try {
+    return window.matchMedia("(pointer: coarse)").matches ? "camera" : "file";
+  } catch {
+    return "file";
+  }
+}
+
+const MODE_LABELS: { id: Mode; label: string }[] = [
+  { id: "camera", label: "カメラ" },
+  { id: "file", label: "スクリーンショット" },
+];
+
 export function ScanTab({ onOpenBills }: { onOpenBills: () => void }) {
-  const [stage, setStage] = useState<Stage>({ kind: "start" });
+  // ScanTab はハイドレーション後にだけ描画されるので、初期値でブラウザの情報を読んでよい
+  const [mode, setMode] = useState<Mode>(defaultMode);
+  const [stage, setStage] = useState<Stage>({ kind: "input" });
   const [error, setError] = useState<string>();
   /** 読み取り済みのページ（n/5 の n）と、そのページ総数 */
   const [pages, setPages] = useState<{ total: number; read: number[] }>({ total: 0, read: [] });
@@ -58,13 +75,13 @@ export function ScanTab({ onOpenBills }: { onOpenBills: () => void }) {
     } catch (e) {
       console.error(e);
       setError("読み取りに失敗しました。画像を確認して、もう一度お試しください（初回は通信が必要です）。");
-      setStage({ kind: "start" });
+      setStage({ kind: "input" });
     }
   }, []);
 
   const failCamera = useCallback((message: string) => {
     setError(message);
-    setStage({ kind: "start" });
+    setMode("file");
   }, []);
 
   return (
@@ -76,8 +93,18 @@ export function ScanTab({ onOpenBills }: { onOpenBills: () => void }) {
             {error}
           </p>
         )}
-        {stage.kind === "start" && <StartPanel onCamera={() => setStage({ kind: "camera" })} onFile={(f) => readImage(f, "file")} />}
-        {stage.kind === "camera" && <CameraPanel onCapture={(b) => readImage(b, "camera")} onCancel={() => setStage({ kind: "start" })} onError={failCamera} />}
+        {stage.kind === "input" && (
+          <>
+            <div className={styles.modeTabs} role="tablist" aria-label="入力方法">
+              {MODE_LABELS.map((m) => (
+                <button key={m.id} type="button" role="tab" aria-selected={mode === m.id} className={mode === m.id ? styles.tabActive : styles.tab} onClick={() => setMode(m.id)}>
+                  {m.label}
+                </button>
+              ))}
+            </div>
+            {mode === "camera" ? <CameraPanel onCapture={(b) => readImage(b, "camera")} onError={failCamera} /> : <FilePanel onFile={(f) => readImage(f, "file")} />}
+          </>
+        )}
         {stage.kind === "reading" && (
           <div role="status">
             <p className={styles.muted}>{stage.status}</p>
@@ -90,7 +117,7 @@ export function ScanTab({ onOpenBills }: { onOpenBills: () => void }) {
           <ResultPanel
             result={stage}
             pages={pages}
-            onNext={() => setStage(stage.origin === "camera" ? { kind: "camera" } : { kind: "start" })}
+            onNext={() => setStage({ kind: "input" })}
             onOpenBills={onOpenBills}
           />
         )}
@@ -100,14 +127,11 @@ export function ScanTab({ onOpenBills }: { onOpenBills: () => void }) {
   );
 }
 
-function StartPanel({ onCamera, onFile }: { onCamera: () => void; onFile: (file: File) => void }) {
+function FilePanel({ onFile }: { onFile: (file: File) => void }) {
   return (
     <div className={styles.scanActions}>
-      <p className={styles.muted}>手配書の「討伐対象」「討伐体数」「生息場所」が並んでいる部分を、1 ページずつ撮影します。</p>
-      <button type="button" className={styles.primaryButton} onClick={onCamera}>
-        カメラで撮影
-      </button>
-      <label className={styles.secondaryButton} style={{ display: "grid", placeItems: "center", cursor: "pointer" }}>
+      <p className={styles.muted}>手配書の画面（「討伐対象」「討伐体数」「生息場所」が並んでいるところ）が写ったスクリーンショットを選んでください。選ぶとすぐに読み取ります。</p>
+      <label className={styles.primaryButton} style={{ display: "grid", placeItems: "center", cursor: "pointer" }}>
         スクリーンショットを選ぶ
         <input
           type="file"
@@ -133,7 +157,7 @@ const GUIDE_ROWS: { label: string; right?: string }[] = [
   { label: "生息場所" },
 ];
 
-function CameraPanel({ onCapture, onCancel, onError }: { onCapture: (blob: Blob) => void; onCancel: () => void; onError: (message: string) => void }) {
+function CameraPanel({ onCapture, onError }: { onCapture: (blob: Blob) => void; onError: (message: string) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [ready, setReady] = useState(false);
 
@@ -190,9 +214,6 @@ function CameraPanel({ onCapture, onCancel, onError }: { onCapture: (blob: Blob)
       </div>
       <button type="button" className={styles.primaryButton} disabled={!ready} onClick={capture}>
         撮影
-      </button>
-      <button type="button" className={styles.secondaryButton} onClick={onCancel}>
-        やめる
       </button>
     </div>
   );

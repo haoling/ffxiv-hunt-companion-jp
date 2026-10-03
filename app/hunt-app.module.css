@@ -422,3 +422,9 @@
   overflow-wrap: anywhere;
   margin-top: 6px;
 }
+
+.modeTabs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
