@@ -7,10 +7,10 @@ export type CropRect = { x: number; y: number; w: number; h: number };
 /** スクリーンショットから切り出す範囲。下部パネルは画面の下半分にあるので、そこを広めに取る（読み取りはラベルの位置から値を探すので、多少の余計な部分は許される） */
 export const SCREENSHOT_CROP: CropRect = { x: 0.1, y: 0.45, w: 0.8, h: 0.55 };
 
-/** カメラのプレビュー（横長の帯）の縦横比。幅:高さ */
+/** カメラのガイド枠（文字の書いてある部分に合わせる横長の枠）の縦横比。幅:高さ。プレビューは上下に余白をつけて 3:1（CSS の .strip） */
 export const STRIP_ASPECT = 4.5;
 
-/** カメラの映像のうち、プレビュー（幅いっぱい・縦中央の横長の帯）に映っている範囲 */
+/** カメラの映像のうち、ガイド枠（幅いっぱい・縦中央の横長の帯）に映っている範囲。上下の余白は読み取らない */
 export function stripCrop(videoWidth: number, videoHeight: number): CropRect {
   const h = Math.min(1, videoWidth / STRIP_ASPECT / videoHeight);
   return { x: 0, y: (1 - h) / 2, w: 1, h };

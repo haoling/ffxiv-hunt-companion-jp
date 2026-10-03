@@ -340,7 +340,7 @@
 /* カメラのプレビュー: 文字の書いてある部分だけを映す横長の帯 */
 .strip {
   position: relative;
-  aspect-ratio: 9 / 2;
+  aspect-ratio: 3 / 1;
   overflow: hidden;
   border-radius: 10px;
   background: #000;
@@ -354,9 +354,11 @@
   object-fit: cover;
 }
 
+/* 上下に 1/6 ずつ余白を残し、中央の 4.5:1 がガイド枠（余白は暗くして、読み取らないことを示す） */
 .stripGuide {
   position: absolute;
-  inset: 0;
+  inset: 16.667% 0;
+  box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.45);
   display: grid;
   grid-template-rows: repeat(4, 1fr);
   pointer-events: none;
