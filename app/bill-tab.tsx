@@ -5,6 +5,7 @@ import styles from "./hunt-app.module.css";
 import { huntIndex, normalizeName } from "./lib/hunt-data";
 import type { Expansion, HuntTarget } from "./lib/hunt-types";
 import { formatResetTime, nextResetTime } from "./lib/reset";
+import { targetPosition } from "./lib/route-planner";
 import { addEntry, clearDone, clearEntries, removeEntry, toggleDone } from "./lib/user-state";
 import { useBills } from "./use-user-state";
 
@@ -51,7 +52,7 @@ export function BillTab() {
               .map(({ entry, target }) => (
                 <li key={target.id} className={entry.done ? styles.rowDone : styles.row}>
                   <label className={styles.check}>
-                    <input type="checkbox" checked={entry.done} onChange={() => toggleDone(target.id)} />
+                    <input type="checkbox" checked={entry.done} onChange={() => toggleDone(target.id, targetPosition(huntIndex, target))} />
                     <span className={styles.rowBody}>
                       <span className={styles.rowTitle}>
                         {target.name} × {entry.neededKills}

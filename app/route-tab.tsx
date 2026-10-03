@@ -4,9 +4,9 @@ import styles from "./hunt-app.module.css";
 import { availableCities, TRAVEL_LABELS } from "./lib/cities";
 import { huntIndex } from "./lib/hunt-data";
 import type { HuntTarget } from "./lib/hunt-types";
-import { computeRoute, DEFAULT_ROUTE_OPTIONS, type TravelPart } from "./lib/route-planner";
-import { toggleDone, updateSettings } from "./lib/user-state";
-import { useBills, useSettings } from "./use-user-state";
+import { computeRoute, DEFAULT_ROUTE_OPTIONS, targetPosition, type TravelPart } from "./lib/route-planner";
+import { clearPosition, toggleDone, updateSettings } from "./lib/user-state";
+import { useBills, usePosition, useSettings } from "./use-user-state";
 
 const fmt = (n: number) => n.toFixed(1);
 
@@ -19,6 +19,7 @@ function travelHeading(part: TravelPart, zoneName: string): string {
 export function RouteTab({ onOpenSettings }: { onOpenSettings: () => void }) {
   const bills = useBills();
   const settings = useSettings();
+  const position = usePosition();
   const cities = availableCities(settings.grandCompany);
   const city = cities.find((c) => c.id === settings.defaultCityId) ?? cities[0];
 
@@ -26,13 +27,17 @@ export function RouteTab({ onOpenSettings }: { onOpenSettings: () => void }) {
     const t = !b.done ? huntIndex.targets.get(b.targetId) : undefined;
     return t ? [t] : [];
   });
+  const cityAetheryte = city ? huntIndex.aetherytes.get(city.aetheryteId) : undefined;
+  // 最後に倒した場所が分かるときは、そこからルートを組む（チェックのたびに出発地へ戻らない）
+  const start = position && huntIndex.zones.has(position.zoneId) ? position : cityAetheryte;
   const route =
     city === undefined
       ? undefined
-      : computeRoute(huntIndex, pending, city.aetheryteId, { ...DEFAULT_ROUTE_OPTIONS, preference: settings.travelPreference });
+      : computeRoute(huntIndex, pending, start, { ...DEFAULT_ROUTE_OPTIONS, preference: settings.travelPreference });
 
   const kills = new Map(bills.map((b) => [b.targetId, b.neededKills]));
-  const startZone = city ? huntIndex.aetherytes.get(city.aetheryteId)?.name : undefined;
+  const startZone = cityAetheryte?.name;
+  const currentZone = position ? huntIndex.zones.get(position.zoneId)?.name : undefined;
 
   return (
     <>
@@ -62,7 +67,18 @@ export function RouteTab({ onOpenSettings }: { onOpenSettings: () => void }) {
           <p className={styles.muted}>未完了の対象がありません。「手配書」で対象を追加してください。</p>
         ) : route && (
           <>
-            <p className={styles.note}>出発: {startZone}</p>
+            <p className={styles.note}>
+              {position && currentZone ? (
+                <>
+                  現在地: {currentZone}（最後に倒した場所）{" "}
+                  <button type="button" className={styles.linkButton} onClick={clearPosition}>
+                    出発地から計算し直す
+                  </button>
+                </>
+              ) : (
+                <>出発: {startZone}</>
+              )}
+            </p>
             <ol className={styles.steps}>
               {route.steps.map((step, i) => (
                 <li key={step.zoneId} className={styles.step}>
@@ -114,7 +130,7 @@ function TargetCheck({ target, kills }: { target: HuntTarget; kills: number }) {
   return (
     <li className={styles.row}>
       <label className={styles.check}>
-        <input type="checkbox" checked={false} onChange={() => toggleDone(target.id)} />
+        <input type="checkbox" checked={false} onChange={() => toggleDone(target.id, targetPosition(huntIndex, target))} />
         <span className={styles.rowBody}>
           <span className={styles.rowTitle}>
             {target.name} × {kills}

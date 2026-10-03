@@ -53,7 +53,8 @@ export type Route = {
 };
 
 type Point = { x: number; y: number };
-type Position = Point & { zoneId: number };
+/** エリア内の位置（ゲーム内のマップ座標） */
+export type Position = Point & { zoneId: number };
 type StopData = Point & { key: string; regionName?: string; targets: HuntTarget[] };
 
 const EPS = 1e-9;
@@ -198,28 +199,29 @@ function legsTo(index: HuntIndex, nodes: Map<string, GraphNode>, key: string): M
   return legs.reverse();
 }
 
+/** 対象の立ち寄り先（キーと位置）。FATE のボスは FATE の位置、エリートなど位置が分からない対象はエリアの中央で代用する */
+function stopPoint(index: HuntIndex, zone: Zone | undefined, t: HuntTarget): { key: string; point: Point; regionName?: string } {
+  const region = t.regionId === undefined ? undefined : index.regions.get(t.regionId);
+  if (t.fate) return { key: `f:${t.fate.id}`, point: t.fate, regionName: region?.name };
+  if (region) return { key: `r:${region.id}`, point: region, regionName: region.name };
+  const c = 1 + 20.5 / scaleOf(zone);
+  return { key: `z:${t.id}`, point: { x: c, y: c } };
+}
+
+/** 対象を倒した場所（チェックを入れたときの現在地）。ルートの再計算はここから始める */
+export function targetPosition(index: HuntIndex, t: HuntTarget): Position {
+  const { point } = stopPoint(index, index.zones.get(t.zoneId), t);
+  return { zoneId: t.zoneId, x: point.x, y: point.y };
+}
+
 /** 対象の位置を決めてまとめる。同じ地域名の対象は 1 つの立ち寄り先にする（FATE のボスは FATE の位置） */
 function buildStops(index: HuntIndex, zone: Zone, targets: HuntTarget[]): StopData[] {
   const stops = new Map<string, StopData>();
   for (const t of targets) {
-    const region = t.regionId === undefined ? undefined : index.regions.get(t.regionId);
-    let key: string;
-    let point: Point;
-    if (t.fate) {
-      key = `f:${t.fate.id}`;
-      point = t.fate;
-    } else if (region) {
-      key = `r:${region.id}`;
-      point = region;
-    } else {
-      // エリートなど位置が分からない対象は、エリアの中央で代用する（表示では方角を出さない）
-      key = `z:${t.id}`;
-      const c = 1 + 20.5 / scaleOf(zone);
-      point = { x: c, y: c };
-    }
+    const { key, point, regionName } = stopPoint(index, zone, t);
     const stop = stops.get(key);
     if (stop) stop.targets.push(t);
-    else stops.set(key, { key, ...point, regionName: region?.name, targets: [t] });
+    else stops.set(key, { key, ...point, regionName, targets: [t] });
   }
   return [...stops.values()];
 }
@@ -303,17 +305,16 @@ function teleportThenMoveOption(
 }
 
 /**
- * 出発地（エーテライト）から、未完了の対象を回るルートを計算する。
+ * 出発地（エーテライトの位置、または最後に倒した場所）から、未完了の対象を回るルートを計算する。
  * - エリアごとにまとめ、エリア内は最短の順番（PLAN §8 の 4.）
  * - エリア間の移動は preference に従う（PLAN §8.1）
  */
 export function computeRoute(
   index: HuntIndex,
   targets: HuntTarget[],
-  startAetheryteId: number,
+  start: Position | undefined,
   opts: RouteOptions,
 ): Route {
-  const start = index.aetherytes.get(startAetheryteId);
   const groups = new Map<number, HuntTarget[]>();
   for (const t of targets) {
     if (!index.zones.has(t.zoneId)) continue;
@@ -329,7 +330,7 @@ export function computeRoute(
   const allowFlying = opts.preference !== "walk";
   const factor = opts.preference === "walk" ? opts.walkFactor : 1;
   const moveMode = opts.preference;
-  let pos: Position = { zoneId: start.zoneId, x: start.x, y: start.y };
+  let pos: Position = start;
 
   while (groups.size) {
     const nodes = reachableNodes(index, pos, allowFlying, factor);

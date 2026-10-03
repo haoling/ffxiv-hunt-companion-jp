@@ -2,7 +2,8 @@
 
 import { useSyncExternalStore } from "react";
 import type { BillEntry, UserSettings } from "./lib/hunt-types";
-import { billStore, settingsStore } from "./lib/user-state";
+import type { Position } from "./lib/route-planner";
+import { billStore, positionStore, settingsStore } from "./lib/user-state";
 
 const noopSubscribe = () => () => {};
 
@@ -17,4 +18,8 @@ export function useBills(): BillEntry[] {
 
 export function useSettings(): UserSettings {
   return useSyncExternalStore(settingsStore.subscribe, settingsStore.getSnapshot, settingsStore.getServerSnapshot);
+}
+
+export function usePosition(): Position | undefined {
+  return useSyncExternalStore(positionStore.subscribe, positionStore.getSnapshot, positionStore.getServerSnapshot);
 }
