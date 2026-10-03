@@ -79,6 +79,8 @@ export function ScanTab({ onOpenBills }: { onOpenBills: () => void }) {
     }
   }, []);
 
+  const onFile = useCallback((f: Blob) => readImage(f, "file"), [readImage]);
+
   const failCamera = useCallback((message: string) => {
     setError(message);
     setMode("file");
@@ -102,7 +104,7 @@ export function ScanTab({ onOpenBills }: { onOpenBills: () => void }) {
                 </button>
               ))}
             </div>
-            {mode === "camera" ? <CameraPanel onCapture={(b) => readImage(b, "camera")} onError={failCamera} /> : <FilePanel onFile={(f) => readImage(f, "file")} />}
+            {mode === "camera" ? <CameraPanel onCapture={(b) => readImage(b, "camera")} onError={failCamera} /> : <FilePanel onFile={onFile} />}
           </>
         )}
         {stage.kind === "reading" && (
@@ -127,12 +129,61 @@ export function ScanTab({ onOpenBills }: { onOpenBills: () => void }) {
   );
 }
 
+/** クリップボードの画像を取り出す（Ctrl+V の貼り付けイベントから） */
+function imageFromPaste(e: ClipboardEvent): File | undefined {
+  for (const item of e.clipboardData?.items ?? []) {
+    if (item.kind === "file" && item.type.startsWith("image/")) return item.getAsFile() ?? undefined;
+  }
+  return undefined;
+}
+
 function FilePanel({ onFile }: { onFile: (file: File) => void }) {
+  const [pasteError, setPasteError] = useState<string>();
+
+  // このパネルを表示している間は、どこで Ctrl+V（⌘V）を押しても貼り付けられる
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const file = imageFromPaste(e);
+      if (!file) return;
+      e.preventDefault();
+      onFile(file);
+    };
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+  }, [onFile]);
+
+  /** ボタンから貼り付ける（Clipboard API。ブラウザが許可を求めることがある） */
+  const pasteFromButton = async () => {
+    setPasteError(undefined);
+    try {
+      for (const item of await navigator.clipboard.read()) {
+        const type = item.types.find((t) => t.startsWith("image/"));
+        if (type) {
+          onFile(new File([await item.getType(type)], "clipboard", { type }));
+          return;
+        }
+      }
+      setPasteError("クリップボードに画像がありません。スクリーンショットをコピーしてからもう一度押してください。");
+    } catch {
+      setPasteError("クリップボードを読み取れませんでした。Ctrl+V（⌘V）で貼り付けてください。");
+    }
+  };
+
   return (
     <div className={styles.scanActions}>
-      <p className={styles.muted}>手配書の画面（「討伐対象」「討伐体数」「生息場所」が並んでいるところ）が写ったスクリーンショットを選んでください。選ぶとすぐに読み取ります。</p>
-      <label className={styles.primaryButton} style={{ display: "grid", placeItems: "center", cursor: "pointer" }}>
-        スクリーンショットを選ぶ
+      <p className={styles.muted}>
+        手配書の画面（「討伐対象」「討伐体数」「生息場所」が並んでいるところ）が写ったスクリーンショットを、<strong>Ctrl+V（⌘V）で貼り付ける</strong>か、ファイルを選んでください。すぐに読み取ります。
+      </p>
+      {pasteError && (
+        <p className={styles.warn} role="alert">
+          {pasteError}
+        </p>
+      )}
+      <button type="button" className={styles.primaryButton} onClick={pasteFromButton}>
+        クリップボードから貼り付け
+      </button>
+      <label className={styles.secondaryButton} style={{ display: "grid", placeItems: "center", cursor: "pointer" }}>
+        ファイルを選ぶ
         <input
           type="file"
           accept="image/*"
