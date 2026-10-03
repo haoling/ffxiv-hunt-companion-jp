@@ -381,9 +381,8 @@ function AddSelected({ target, parsedKills, added, onAdded }: { target: HuntTarg
           onAdded();
         }}
       >
-        {added ? "討伐体数を更新して次へ" : `「${target.name}」を追加して次へ`}
-      </button>
-    </div>
+        {added ? "追加済み・体数の多いほうにして次へ" : `「${target.name}」を追加して次へ`}
+      </button>    </div>
   );
 }
 

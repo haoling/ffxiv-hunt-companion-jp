@@ -66,11 +66,16 @@ export function clearPosition() {
   positionStore.update(() => undefined);
 }
 
-/** 対象を手配書に追加する。すでにあるときは討伐体数だけ更新する */
+/**
+ * 対象を手配書に追加する。すでにあるときは討伐体数の多いほうに更新する。
+ * ランクの異なる手配書（初級・上級など）で同じモブが対象になることがあり、
+ * 1 回の討伐は両方の手配書に数えられるので、1 行にまとめて多いほうの体数を残せばよい。
+ * 体数を減らしたいときは、いったん削除してから追加し直す。
+ */
 export function addEntry(target: HuntTarget, neededKills: number, source: BillEntry["source"] = "manual") {
   billStore.update((bills) => {
     if (bills.some((b) => b.targetId === target.id)) {
-      return bills.map((b) => (b.targetId === target.id ? { ...b, neededKills } : b));
+      return bills.map((b) => (b.targetId === target.id ? { ...b, neededKills: Math.max(b.neededKills, neededKills) } : b));
     }
     return [...bills, { targetId: target.id, neededKills, done: false, source, addedAt: new Date().toISOString() }];
   });
