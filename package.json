@@ -3,15 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/m3/copy-ocr-assets.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/m3/copy-ocr-assets.mjs",
     "build": "next build",
     "lint": "eslint",
     "build:data": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/build-data.ts"
   },
   "dependencies": {
+    "@tesseract.js-data/jpn": "^1.0.0",
     "next": "16.3.6",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@types/node": "^20",

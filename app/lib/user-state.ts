@@ -65,12 +65,12 @@ export function clearPosition() {
 }
 
 /** 対象を手配書に追加する。すでにあるときは討伐体数だけ更新する */
-export function addEntry(target: HuntTarget, neededKills: number) {
+export function addEntry(target: HuntTarget, neededKills: number, source: BillEntry["source"] = "manual") {
   billStore.update((bills) => {
     if (bills.some((b) => b.targetId === target.id)) {
       return bills.map((b) => (b.targetId === target.id ? { ...b, neededKills } : b));
     }
-    return [...bills, { targetId: target.id, neededKills, done: false, source: "manual", addedAt: new Date().toISOString() }];
+    return [...bills, { targetId: target.id, neededKills, done: false, source, addedAt: new Date().toISOString() }];
   });
 }
 

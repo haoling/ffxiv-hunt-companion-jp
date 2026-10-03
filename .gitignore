@@ -34,3 +34,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# OCR 用にコピーした Tesseract.js のファイル（npm run dev / build で生成）
+/public/ocr/

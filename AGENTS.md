@@ -33,7 +33,7 @@ npm run build:data  # public/data/hunts.json を再生成（手順は docs/m1/RE
 - **TypeScript**（`strict: true`）
 - **ESLint 9**（`eslint-config-next` の `core-web-vitals` と `typescript`）
 - **CSS Modules**（`app/*.module.css`）
-- **Tesseract.js**（ブラウザ内 OCR、WASM）※今後実装
+- **Tesseract.js**（ブラウザ内 OCR、WASM）。ワーカー・WASM・学習データは `npm run dev` / `build` の前に `scripts/m3/copy-ocr-assets.mjs` が `public/ocr/` へコピーする（git 管理外）
 
 ディレクトリ構成
 --------
@@ -41,7 +41,7 @@ npm run build:data  # public/data/hunts.json を再生成（手順は docs/m1/RE
 | パス | 内容 |
 |---|---|
 | `app/` | Next.js App Router のページ・コンポーネント・スタイル |
-| `public/` | 静的ファイル（今後、生成した `public/data/hunts.json` もここに置く） |
+| `public/` | 静的ファイル（生成した `public/data/hunts.json` など。`public/ocr/` は OCR 用のコピーで git 管理外） |
 | `scripts/` | データ生成・検証スクリプト |
 | `docs/` | 開発計画書と調査レポート |
 | `research_materials/` | 調査資料（実装からは参照しない） |

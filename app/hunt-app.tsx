@@ -4,13 +4,15 @@ import { useState } from "react";
 import { BillTab } from "./bill-tab";
 import styles from "./hunt-app.module.css";
 import { RouteTab } from "./route-tab";
+import { ScanTab } from "./scan-tab";
 import { SettingsTab } from "./settings-tab";
 import { useHydrated } from "./use-user-state";
 
-type Tab = "bills" | "route" | "settings";
+type Tab = "bills" | "scan" | "route" | "settings";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "bills", label: "手配書" },
+  { id: "scan", label: "スキャン" },
   { id: "route", label: "ルート" },
   { id: "settings", label: "設定" },
 ];
@@ -43,6 +45,8 @@ export function HuntApp() {
           <p className={styles.muted}>読み込み中…</p>
         ) : tab === "bills" ? (
           <BillTab />
+        ) : tab === "scan" ? (
+          <ScanTab onOpenBills={() => setTab("bills")} />
         ) : tab === "route" ? (
           <RouteTab onOpenSettings={() => setTab("settings")} />
         ) : (
