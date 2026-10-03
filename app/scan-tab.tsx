@@ -5,13 +5,10 @@ import { placeText } from "./bill-tab";
 import styles from "./hunt-app.module.css";
 import { huntIndex } from "./lib/hunt-data";
 import type { HuntTarget } from "./lib/hunt-types";
-import { cropAndPrepare, DEFAULT_CROP, type CropRect } from "./lib/ocr-image";
+import { cropAndPrepare, SCREENSHOT_CROP, sourceSize, stripCrop } from "./lib/ocr-image";
 import { MIN_ACCEPT_SCORE, matchTargets, parsePanelText, type Candidate, type ParsedPanel } from "./lib/ocr-match";
 import { addEntry } from "./lib/user-state";
 import { useBills } from "./use-user-state";
-
-/** カメラのプレビューに重ねるガイド枠（下部パネルをこの枠に合わせる） */
-const GUIDE: CropRect = { x: 0.04, y: 0.5, w: 0.92, h: 0.46 };
 
 /** 画像の出どころ。画面をカメラで撮った写真は、モアレ対策のぼかしを入れて読む */
 type Origin = "camera" | "file";
@@ -19,13 +16,8 @@ type Origin = "camera" | "file";
 type Stage =
   | { kind: "start" }
   | { kind: "camera" }
-  | { kind: "crop"; photo: boolean; url: string; bitmap: ImageBitmap; crop: CropRect }
   | { kind: "reading"; progress: number; status: string }
-  | { kind: "result"; panel: ParsedPanel; candidates: Candidate[]; text: string; preview: string };
-
-function clamp01(v: number): number {
-  return Math.min(1, Math.max(0, v));
-}
+  | { kind: "result"; origin: Origin; panel: ParsedPanel; candidates: Candidate[]; text: string; preview: string };
 
 const STATUS_LABELS: Record<string, string> = {
   "loading tesseract core": "OCR エンジンを読み込み中…",
@@ -40,29 +32,16 @@ export function ScanTab({ onOpenBills }: { onOpenBills: () => void }) {
   /** 読み取り済みのページ（n/5 の n）と、そのページ総数 */
   const [pages, setPages] = useState<{ total: number; read: number[] }>({ total: 0, read: [] });
 
-  const openImage = useCallback(async (blob: Blob, origin: Origin) => {
-    setError(undefined);
-    try {
-      const bitmap = await createImageBitmap(blob);
-      setStage({ kind: "crop", photo: origin === "camera", url: URL.createObjectURL(blob), bitmap, crop: origin === "camera" ? GUIDE : DEFAULT_CROP });
-    } catch {
-      setError("画像を開けませんでした。別の画像を選んでください。");
-    }
-  }, []);
-
-  // 切り出し画面を離れるとき、画像の URL を解放する
-  const cropUrl = stage.kind === "crop" ? stage.url : undefined;
-  useEffect(() => {
-    return () => {
-      if (cropUrl) URL.revokeObjectURL(cropUrl);
-    };
-  }, [cropUrl]);
-
-  const read = useCallback(async (s: Extract<Stage, { kind: "crop" }>) => {
+  /** 画像を受け取ったらすぐに読み取って、候補を出す */
+  const readImage = useCallback(async (blob: Blob, origin: Origin) => {
     setError(undefined);
     setStage({ kind: "reading", progress: 0, status: "準備中…" });
     try {
-      const canvas = cropAndPrepare(s.bitmap, s.crop, { blurRadius: s.photo ? 1 : 0 });
+      const bitmap = await createImageBitmap(blob);
+      const size = sourceSize(bitmap);
+      const crop = origin === "camera" ? stripCrop(size.width, size.height) : SCREENSHOT_CROP;
+      const canvas = cropAndPrepare(bitmap, crop, { blurRadius: origin === "camera" ? 1 : 0 });
+      bitmap.close();
       const { recognize } = await import("./lib/ocr-engine");
       const text = await recognize(canvas, (p) =>
         setStage((cur) => (cur.kind === "reading" ? { kind: "reading", progress: p.progress, status: STATUS_LABELS[p.status] ?? p.status } : cur)),
@@ -75,34 +54,30 @@ export function ScanTab({ onOpenBills }: { onOpenBills: () => void }) {
           p.total === page.total ? { total: p.total, read: [...new Set([...p.read, page.current])].sort() } : { total: page.total, read: [page.current] },
         );
       }
-      setStage({ kind: "result", panel, candidates, text, preview: canvas.toDataURL("image/png") });
+      setStage({ kind: "result", origin, panel, candidates, text, preview: canvas.toDataURL("image/png") });
     } catch (e) {
       console.error(e);
-      setError("文字の認識に失敗しました。通信状況を確認して、もう一度お試しください。");
-      setStage(s);
+      setError("読み取りに失敗しました。画像を確認して、もう一度お試しください（初回は通信が必要です）。");
+      setStage({ kind: "start" });
     }
+  }, []);
+
+  const failCamera = useCallback((message: string) => {
+    setError(message);
+    setStage({ kind: "start" });
   }, []);
 
   return (
     <>
       <section className={styles.card}>
         <h2>手配書をスキャン</h2>
-        <p className={styles.muted}>
-          手配書の画面の下にある情報パネル（「討伐対象」「討伐体数」「生息場所」が並ぶ部分）を読み取ります。
-          1 ページずつ読み取って、リストに追加してください。
-        </p>
-        {error && <p className={styles.warn} role="alert">{error}</p>}
-        {stage.kind === "start" && <StartPanel onCamera={() => setStage({ kind: "camera" })} onFile={(f) => openImage(f, "file")} />}
-        {stage.kind === "camera" && <CameraPanel onCapture={(b) => openImage(b, "camera")} onCancel={() => setStage({ kind: "start" })} onError={(m) => { setError(m); setStage({ kind: "start" }); }} />}
-        {stage.kind === "crop" && (
-          <CropPanel
-            stage={stage}
-            onChange={(crop) => setStage({ ...stage, crop })}
-            onPhotoChange={(photo) => setStage({ ...stage, photo })}
-            onRead={() => read(stage)}
-            onBack={() => setStage({ kind: "start" })}
-          />
+        {error && (
+          <p className={styles.warn} role="alert">
+            {error}
+          </p>
         )}
+        {stage.kind === "start" && <StartPanel onCamera={() => setStage({ kind: "camera" })} onFile={(f) => readImage(f, "file")} />}
+        {stage.kind === "camera" && <CameraPanel onCapture={(b) => readImage(b, "camera")} onCancel={() => setStage({ kind: "start" })} onError={failCamera} />}
         {stage.kind === "reading" && (
           <div role="status">
             <p className={styles.muted}>{stage.status}</p>
@@ -111,11 +86,16 @@ export function ScanTab({ onOpenBills }: { onOpenBills: () => void }) {
             </div>
           </div>
         )}
-        {stage.kind === "result" && <ResultPanel result={stage} pages={pages} onRetry={() => setStage({ kind: "start" })} onOpenBills={onOpenBills} />}
+        {stage.kind === "result" && (
+          <ResultPanel
+            result={stage}
+            pages={pages}
+            onNext={() => setStage(stage.origin === "camera" ? { kind: "camera" } : { kind: "start" })}
+            onOpenBills={onOpenBills}
+          />
+        )}
       </section>
-      {pages.total > 0 && stage.kind !== "reading" && (
-        <PageProgress pages={pages} onReset={() => setPages({ total: 0, read: [] })} />
-      )}
+      {pages.total > 0 && stage.kind !== "reading" && <PageProgress pages={pages} onReset={() => setPages({ total: 0, read: [] })} />}
     </>
   );
 }
@@ -123,11 +103,12 @@ export function ScanTab({ onOpenBills }: { onOpenBills: () => void }) {
 function StartPanel({ onCamera, onFile }: { onCamera: () => void; onFile: (file: File) => void }) {
   return (
     <div className={styles.scanActions}>
+      <p className={styles.muted}>手配書の「討伐対象」「討伐体数」「生息場所」が並んでいる部分を、1 ページずつ撮影します。</p>
       <button type="button" className={styles.primaryButton} onClick={onCamera}>
         カメラで撮影
       </button>
       <label className={styles.secondaryButton} style={{ display: "grid", placeItems: "center", cursor: "pointer" }}>
-        スクリーンショット・画像を選ぶ
+        スクリーンショットを選ぶ
         <input
           type="file"
           accept="image/*"
@@ -140,10 +121,17 @@ function StartPanel({ onCamera, onFile }: { onCamera: () => void; onFile: (file:
           }}
         />
       </label>
-      <p className={styles.note}>スクリーンショットのほうが、カメラで画面を撮るより正確に読み取れます。</p>
     </div>
   );
 }
+
+/** ガイド枠の行（手配書の下部パネルの並びに合わせる）。左のラベルは固定文字、右は読み取る値の場所 */
+const GUIDE_ROWS: { label: string; right?: string }[] = [
+  { label: "モブ手配書", right: "n/5" },
+  { label: "討伐対象" },
+  { label: "討伐体数" },
+  { label: "生息場所" },
+];
 
 function CameraPanel({ onCapture, onCancel, onError }: { onCapture: (blob: Blob) => void; onCancel: () => void; onError: (message: string) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -167,7 +155,7 @@ function CameraPanel({ onCapture, onCancel, onError }: { onCapture: (blob: Blob)
           setReady(true);
         }
       } catch {
-        if (!cancelled) onError("カメラを使えませんでした。ブラウザのカメラの許可を確認するか、スクリーンショット・画像を選んでください。");
+        if (!cancelled) onError("カメラを使えませんでした。ブラウザのカメラの許可を確認するか、スクリーンショットを選んでください。");
       }
     })();
     return () => {
@@ -188,10 +176,16 @@ function CameraPanel({ onCapture, onCancel, onError }: { onCapture: (blob: Blob)
 
   return (
     <div className={styles.scanActions}>
-      <div className={styles.stage}>
-        <video ref={videoRef} playsInline muted />
-        <div className={styles.guideBox} style={{ left: `${GUIDE.x * 100}%`, top: `${GUIDE.y * 100}%`, width: `${GUIDE.w * 100}%`, height: `${GUIDE.h * 100}%` }}>
-          <span className={styles.guideLabel}>下部パネルをこの枠に合わせる</span>
+      <p className={styles.muted}>文字が書いてある部分だけを、下の枠いっぱいに映してください。撮影するとすぐに読み取ります。</p>
+      <div className={styles.strip}>
+        <video ref={videoRef} playsInline muted className={styles.stripVideo} />
+        <div className={styles.stripGuide} aria-hidden="true">
+          {GUIDE_ROWS.map((row) => (
+            <div key={row.label} className={styles.stripRow}>
+              <span>{row.label}</span>
+              {row.right && <span>{row.right}</span>}
+            </div>
+          ))}
         </div>
       </div>
       <button type="button" className={styles.primaryButton} disabled={!ready} onClick={capture}>
@@ -204,71 +198,15 @@ function CameraPanel({ onCapture, onCancel, onError }: { onCapture: (blob: Blob)
   );
 }
 
-function CropPanel({
-  stage,
-  onChange,
-  onPhotoChange,
-  onRead,
-  onBack,
-}: {
-  stage: Extract<Stage, { kind: "crop" }>;
-  onChange: (crop: CropRect) => void;
-  onPhotoChange: (photo: boolean) => void;
-  onRead: () => void;
-  onBack: () => void;
-}) {
-  const stageRef = useRef<HTMLDivElement>(null);
-  const start = useRef<{ x: number; y: number } | undefined>(undefined);
-  const { crop } = stage;
-
-  const point = (e: React.PointerEvent) => {
-    const box = stageRef.current!.getBoundingClientRect();
-    return { x: clamp01((e.clientX - box.left) / box.width), y: clamp01((e.clientY - box.top) / box.height) };
-  };
-  const update = (a: { x: number; y: number }, b: { x: number; y: number }) =>
-    onChange({ x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y) });
-
-  return (
-    <div className={styles.scanActions}>
-      <p className={styles.muted}>情報パネルの部分だけを、指でなぞって囲んでください（余計な部分を含めないほうが正確に読めます）。</p>
-      <div
-        ref={stageRef}
-        className={styles.stage}
-        onPointerDown={(e) => {
-          e.currentTarget.setPointerCapture(e.pointerId);
-          start.current = point(e);
-        }}
-        onPointerMove={(e) => start.current && update(start.current, point(e))}
-        onPointerUp={() => (start.current = undefined)}
-        onPointerCancel={() => (start.current = undefined)}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element -- ローカルの Blob URL なので next/image は使えない */}
-        <img src={stage.url} alt="読み取る画像" draggable={false} />
-        <div className={styles.cropBox} style={{ left: `${crop.x * 100}%`, top: `${crop.y * 100}%`, width: `${crop.w * 100}%`, height: `${crop.h * 100}%` }} />
-      </div>
-      <label className={styles.check}>
-        <input type="checkbox" checked={stage.photo} onChange={(e) => onPhotoChange(e.target.checked)} data-testid="scan-photo" />
-        <span className={styles.rowSub}>画面をカメラで撮った写真（モアレ対策のぼかしを入れて読む）</span>
-      </label>
-      <button type="button" className={styles.primaryButton} disabled={crop.w < 0.05 || crop.h < 0.02} onClick={onRead} data-testid="scan-read">
-        読み取る
-      </button>
-      <button type="button" className={styles.secondaryButton} onClick={onBack}>
-        別の画像にする
-      </button>
-    </div>
-  );
-}
-
 function ResultPanel({
   result,
   pages,
-  onRetry,
+  onNext,
   onOpenBills,
 }: {
   result: Extract<Stage, { kind: "result" }>;
   pages: { total: number; read: number[] };
-  onRetry: () => void;
+  onNext: () => void;
   onOpenBills: () => void;
 }) {
   const { panel, candidates, text, preview } = result;
@@ -281,31 +219,12 @@ function ResultPanel({
 
   return (
     <div className={styles.scanActions} data-testid="scan-result">
-      <h3>読み取り結果</h3>
-      {/* eslint-disable-next-line @next/next/no-img-element -- 前処理後の canvas の dataURL */}
-      <img className={styles.cropped} src={preview} alt="認識に使った画像" />
-      <dl className={styles.parsed}>
-        <dt>討伐対象</dt>
-        <dd data-testid="scan-name">{panel.name ?? "（読み取れませんでした）"}</dd>
-        <dt>討伐体数</dt>
-        <dd>{panel.kills ?? "（読み取れませんでした）"}</dd>
-        <dt>生息場所</dt>
-        <dd>{panel.place ?? "（読み取れませんでした）"}</dd>
-        {panel.page && (
-          <>
-            <dt>ページ</dt>
-            <dd>
-              {panel.page.current} / {panel.page.total}
-            </dd>
-          </>
-        )}
-      </dl>
+      <h3>読み取り結果{panel.page ? `（${panel.page.current} / ${panel.page.total} ページ）` : ""}</h3>
       {!confident && (
         <p className={styles.warn} role="alert">
-          うまく読み取れませんでした。範囲を狭めて撮り直すか、手配書タブの「対象を追加」から探してください。
+          うまく読み取れませんでした。文字の部分を大きく映して撮り直すか、手配書タブの「対象を追加」から探してください。
         </p>
       )}
-      <h3>候補（合っているものを選んでください）</h3>
       <ul className={styles.list}>
         {candidates.map((c) => (
           <li key={c.target.id} className={styles.row} data-testid="scan-candidate" data-target-id={c.target.id} data-score={c.score.toFixed(3)}>
@@ -326,20 +245,28 @@ function ResultPanel({
           </li>
         ))}
       </ul>
-      {selected && <AddSelected key={selected.id} target={selected} parsedKills={panel.kills} added={added.has(selected.id)} onAdded={onRetry} />}
+      {selected && <AddSelected key={selected.id} target={selected} parsedKills={panel.kills} added={added.has(selected.id)} onAdded={onNext} />}
       {pages.total > 0 && panel.page && pages.read.length < pages.total && (
-        <p className={styles.note}>
-          このページを追加したら、手配書の次のページに進めて、続けてスキャンしてください（残り {pages.total - pages.read.length} ページ）。
-        </p>
+        <p className={styles.note}>追加したら、手配書を次のページに進めて、続けて撮影してください（残り {pages.total - pages.read.length} ページ）。</p>
       )}
-      <button type="button" className={styles.secondaryButton} onClick={onRetry}>
-        別のページ・画像を読み取る
+      <button type="button" className={styles.secondaryButton} onClick={onNext}>
+        追加せずに撮り直す・次へ
       </button>
       <button type="button" className={styles.linkButton} onClick={onOpenBills}>
         手配書タブで確認・手入力する
       </button>
       <details className={styles.rawText}>
-        <summary>認識した文字（デバッグ用）</summary>
+        <summary>読み取った内容（デバッグ用）</summary>
+        <dl className={styles.parsed}>
+          <dt>討伐対象</dt>
+          <dd data-testid="scan-name">{panel.name ?? "（読み取れませんでした）"}</dd>
+          <dt>討伐体数</dt>
+          <dd>{panel.kills ?? "（読み取れませんでした）"}</dd>
+          <dt>生息場所</dt>
+          <dd>{panel.place ?? "（読み取れませんでした）"}</dd>
+        </dl>
+        {/* eslint-disable-next-line @next/next/no-img-element -- 前処理後の canvas の dataURL */}
+        <img className={styles.cropped} src={preview} alt="認識に使った画像" />
         <pre>{text}</pre>
       </details>
     </div>
@@ -388,11 +315,7 @@ function PageProgress({ pages, onReset }: { pages: { total: number; read: number
       <p className={styles.muted}>
         読み取り済み: {pages.read.join("、")} / {pages.total} ページ
       </p>
-      {missing.length > 0 ? (
-        <p className={styles.warn}>まだ読み取っていないページ: {missing.join("、")}</p>
-      ) : (
-        <p className={styles.muted}>すべてのページを読み取りました。</p>
-      )}
+      {missing.length > 0 ? <p className={styles.warn}>まだ読み取っていないページ: {missing.join("、")}</p> : <p className={styles.muted}>すべてのページを読み取りました。</p>}
       <button type="button" className={styles.linkButton} onClick={onReset}>
         別の手配書を読み取る（ページの記録をリセット）
       </button>

@@ -337,43 +337,44 @@
   white-space: nowrap;
 }
 
-.stage {
+/* カメラのプレビュー: 文字の書いてある部分だけを映す横長の帯 */
+.strip {
   position: relative;
+  aspect-ratio: 9 / 2;
   overflow: hidden;
   border-radius: 10px;
   background: #000;
-  touch-action: none;
-  user-select: none;
 }
 
-.stage img,
-.stage video {
-  display: block;
+.stripVideo {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: cover;
+}
+
+.stripGuide {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: repeat(4, 1fr);
   pointer-events: none;
 }
 
-.cropBox,
-.guideBox {
-  position: absolute;
-  border: 2px solid #a78bfa;
-  box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.6);
-  pointer-events: none;
+.stripRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 8px;
+  border-bottom: 1px dashed rgba(196, 181, 253, 0.8);
+  color: rgba(237, 233, 254, 0.75);
+  font-size: clamp(0.62rem, 2.6vw, 0.85rem);
+  text-shadow: 0 0 3px #000;
 }
 
-.guideBox {
-  border-style: dashed;
-  box-shadow: none;
-}
-
-.guideLabel {
-  position: absolute;
-  top: 2px;
-  left: 6px;
-  color: #ddd6fe;
-  font-size: 0.75rem;
-  text-shadow: 0 0 4px #000;
+.stripRow:last-child {
+  border-bottom: 0;
 }
 
 .progressBar {

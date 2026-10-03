@@ -4,8 +4,17 @@
 /** 切り出す範囲。元画像の幅・高さに対する割合（0〜1） */
 export type CropRect = { x: number; y: number; w: number; h: number };
 
-/** 手配書の下部パネルがありそうな範囲の初期値（画面の下半分より少し上まで） */
-export const DEFAULT_CROP: CropRect = { x: 0.05, y: 0.55, w: 0.9, h: 0.43 };
+/** スクリーンショットから切り出す範囲。下部パネルは画面の下半分にあるので、そこを広めに取る（読み取りはラベルの位置から値を探すので、多少の余計な部分は許される） */
+export const SCREENSHOT_CROP: CropRect = { x: 0.1, y: 0.45, w: 0.8, h: 0.55 };
+
+/** カメラのプレビュー（横長の帯）の縦横比。幅:高さ */
+export const STRIP_ASPECT = 4.5;
+
+/** カメラの映像のうち、プレビュー（幅いっぱい・縦中央の横長の帯）に映っている範囲 */
+export function stripCrop(videoWidth: number, videoHeight: number): CropRect {
+  const h = Math.min(1, videoWidth / STRIP_ASPECT / videoHeight);
+  return { x: 0, y: (1 - h) / 2, w: 1, h };
+}
 
 /** OCR に渡す画像の高さの目安。小さい文字を読みやすくするため、これより小さければ拡大する */
 const TARGET_HEIGHT = 480;
