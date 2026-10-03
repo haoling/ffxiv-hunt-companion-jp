@@ -200,7 +200,7 @@ function CameraPanel({ onCapture, onError }: { onCapture: (blob: Blob) => void; 
 
   return (
     <div className={styles.scanActions}>
-      <p className={styles.muted}>文字が書いてある部分だけを、下の枠いっぱいに映してください。撮影するとすぐに読み取ります。</p>
+      <p className={styles.muted}>文字が書いてある部分を、下の枠に合わせて映してください。枠の上下の余白も読み取るので、多少ずれても大丈夫です。撮影するとすぐに読み取ります。</p>
       <div className={styles.strip}>
         <video ref={videoRef} playsInline muted className={styles.stripVideo} />
         <div className={styles.stripGuide} aria-hidden="true">
