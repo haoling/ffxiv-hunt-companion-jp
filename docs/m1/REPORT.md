@@ -8,15 +8,23 @@
 - 出力: [`public/data/hunts.json`](../../public/data/hunts.json)（コミットする。パッチが来たら再生成する）
 - ゲーム内での確認: [`CHECKLIST.md`](./CHECKLIST.md)
 
-## 再生成の手順
+## 自動更新
+
+[`.github/workflows/update-data.yml`](../../.github/workflows/update-data.yml) が、毎週水曜（と手動実行）に下の手順で `hunts.json` を再生成し、データに変更があれば Draft の PR（ブランチ `bot/update-hunts-data`）を作る。`meta.sources` のコミットだけが変わったときは PR にしない。生成に失敗（警告ではなくエラー）したときは PR を作らずワークフローが失敗する。
+
+- 初回だけ、リポジトリの Settings > Actions > General で「Allow GitHub Actions to create and approve pull requests」を有効にする。
+- PR は GitHub Actions が作るため、ほかのワークフローは走らない。マージ後（main への push）に deploy が走る。
+- 変更内容（対象や名前の増減）は差分で確認してからマージする。
+
+## 再生成の手順（手動）
 
 Node 22.18 以上が必要（TypeScript をそのまま実行する）。
 
 ```bash
 git clone --depth 1 https://github.com/xivapi/ffxiv-datamining ../ffxiv-datamining
-# Teamcraft は fates.json だけ取得する
+# Teamcraft は fates.json と monsters.json だけ取得する
 git clone --depth 1 --filter=blob:none --no-checkout https://github.com/ffxiv-teamcraft/ffxiv-teamcraft ../teamcraft
-git -C ../teamcraft sparse-checkout set --no-cone /libs/data/src/lib/json/fates.json
+git -C ../teamcraft sparse-checkout set --no-cone /libs/data/src/lib/json/fates.json /libs/data/src/lib/json/monsters.json
 git -C ../teamcraft checkout
 npm run build:data
 ```
@@ -28,6 +36,8 @@ npm run build:data
 ## 出力の内容
 
 生成元: `ffxiv-datamining` `d9582a62`、Teamcraft `acc77d4`（`meta.sources` にも入る）。
+
+湧き位置の中心座標（`spawns`、PLAN §5.3）が付いた対象は 335 / 478 体（FATE 以外のデイリー 297 / 341、エリート 38 / 41）。FATE のボス（96 体）は FATE の座標を使うので付けない。残りの 47 体は Teamcraft に実測が無く、地域名ラベルの位置で代用する（警告に出る）。
 
 | 項目 | 件数（新生・蒼天・紅蓮） | 全拡張（`--expansions all`、M0 と同じ） |
 |---|---|---|
