@@ -354,7 +354,7 @@ function teleportThenMoveOption(
 /** これ以下のエリア数なら、回る順番をすべて試して最短を選ぶ */
 const MAX_FULL_SEARCH = 6;
 /** エリアが多いときに先読みするエリア数 */
-const LOOKAHEAD_DEPTH = 2;
+const LOOKAHEAD_DEPTH = 4;
 
 /**
  * 出発地（エーテライトの位置、または最後に倒した場所）から、未完了の対象を回るルートを計算する。
@@ -453,7 +453,7 @@ export function computeRoute(
       pool.push(fallback);
     }
     // 近い順に行くだけだと、あとで大きく戻ることになる（例: 先に遠いエリアへ行って、通り過ぎた近くのエリアへ引き返す）。
-    // そこで「そのエリアへ行く手間 ＋ 残りを回る手間」で比べる。残りが少ないときは最後まで、多いときは 2 手先まで見る
+    // そこで「そのエリアへ行く手間 ＋ 残りを回る手間」で比べる。残りが少ないときは最後まで、多いときは LOOKAHEAD_DEPTH 手先まで見る
     const depth = groups.size <= MAX_FULL_SEARCH ? groups.size : LOOKAHEAD_DEPTH;
     const score = new Map<number, number>();
     for (const c of pool) {
