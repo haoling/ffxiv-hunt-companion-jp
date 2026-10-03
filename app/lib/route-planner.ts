@@ -351,6 +351,11 @@ function teleportThenMoveOption(
   return best;
 }
 
+/** これ以下のエリア数なら、回る順番をすべて試して最短を選ぶ */
+const MAX_FULL_SEARCH = 6;
+/** エリアが多いときに先読みするエリア数 */
+const LOOKAHEAD_DEPTH = 2;
+
 /**
  * 出発地（エーテライトの位置、または最後に倒した場所）から、未完了の対象を回るルートを計算する。
  * - エリアごとにまとめ、エリア内は最短の順番（PLAN §8 の 4.）
@@ -379,11 +384,11 @@ export function computeRoute(
   const moveMode = opts.preference;
   let pos: Position = start;
 
-  while (groups.size) {
-    const nodes = reachableNodes(index, pos, allowFlying, factor);
-    const currentExpansion = index.zones.get(pos.zoneId)?.expansion;
-    const candidates: { zone: Zone; stops: StopData[]; option: Option; canMove: boolean }[] = [];
-    for (const [zoneId, groupTargets] of groups) {
+  /** pos から各エリアへ行く手段（移動またはテレポ）。preference に従って 1 つに絞る */
+  const candidatesFrom = (from: Position, remaining: Map<number, HuntTarget[]>) => {
+    const nodes = reachableNodes(index, from, allowFlying, factor);
+    const list: { zone: Zone; stops: StopData[]; option: Option; canMove: boolean }[] = [];
+    for (const [zoneId, groupTargets] of remaining) {
       const zone = index.zones.get(zoneId)!;
       const stops = buildStops(index, zone, groupTargets);
       const move = moveOption(index, nodes, zone, stops, moveMode);
@@ -395,8 +400,41 @@ export function computeRoute(
         // 飛行移動・徒歩移動: たどれるエリアは、遠くてもテレポしない
         option = move ?? teleport;
       }
-      if (option) candidates.push({ zone, stops, option, canMove: !!move });
+      if (option) list.push({ zone, stops, option, canMove: !!move });
     }
+    return list;
+  };
+
+  const endPosition = (c: { zone: Zone; stops: StopData[]; option: Option }): Position => {
+    const last = c.stops[c.option.order[c.option.order.length - 1]];
+    return { zoneId: c.zone.id, x: last.x, y: last.y };
+  };
+  const poolOf = (list: ReturnType<typeof candidatesFrom>) =>
+    opts.preference !== "teleport" && list.some((c) => c.canMove) ? list.filter((c) => c.canMove) : list;
+  const memo = new Map<string, number>();
+  /** from から remaining を depth 個のエリアぶん回るときの、移動の手間の最小値 */
+  const restCost = (from: Position, remaining: Map<number, HuntTarget[]>, depth: number): number => {
+    if (depth <= 0 || !remaining.size) return 0;
+    const key = `${from.zoneId}:${from.x},${from.y}|${[...remaining.keys()].sort((x, y) => x - y).join(",")}|${depth}`;
+    const known = memo.get(key);
+    if (known !== undefined) return known;
+    const pool = poolOf(candidatesFrom(from, remaining));
+    let best = 0;
+    if (pool.length) {
+      best = Infinity;
+      for (const c of pool) {
+        const next = new Map(remaining);
+        next.delete(c.zone.id);
+        best = Math.min(best, c.option.reachCost + restCost(endPosition(c), next, depth - 1));
+      }
+    }
+    memo.set(key, best);
+    return best;
+  };
+
+  while (groups.size) {
+    const currentExpansion = index.zones.get(pos.zoneId)?.expansion;
+    const candidates = candidatesFrom(pos, groups);
     // 飛行移動・徒歩移動では、たどれるエリアが残っているあいだはテレポしない
     const pool = opts.preference !== "teleport" && candidates.some((c) => c.canMove) ? candidates.filter((c) => c.canMove) : candidates;
     if (!pool.length) {
@@ -414,7 +452,19 @@ export function computeRoute(
       }
       pool.push(fallback);
     }
+    // 近い順に行くだけだと、あとで大きく戻ることになる（例: 先に遠いエリアへ行って、通り過ぎた近くのエリアへ引き返す）。
+    // そこで「そのエリアへ行く手間 ＋ 残りを回る手間」で比べる。残りが少ないときは最後まで、多いときは 2 手先まで見る
+    const depth = groups.size <= MAX_FULL_SEARCH ? groups.size : LOOKAHEAD_DEPTH;
+    const score = new Map<number, number>();
+    for (const c of pool) {
+      const remaining = new Map(groups);
+      remaining.delete(c.zone.id);
+      score.set(c.zone.id, c.option.reachCost + restCost(endPosition(c), remaining, depth - 1));
+    }
     pool.sort((a, b) => {
+      const sa = score.get(a.zone.id)!;
+      const sb = score.get(b.zone.id)!;
+      if (Math.abs(sa - sb) > EPS) return sa - sb;
       if (Math.abs(a.option.reachCost - b.option.reachCost) > EPS) return a.option.reachCost - b.option.reachCost;
       const sameA = a.zone.expansion === currentExpansion ? 0 : 1;
       const sameB = b.zone.expansion === currentExpansion ? 0 : 1;
