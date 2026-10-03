@@ -174,6 +174,8 @@ type Aetheryte = { id: number; zoneId: number; name: string; x: number; y: numbe
 type City = { id: string; name: string; aetheryteId: number; expansion: HuntTarget["expansion"] };
 
 // 取り込んだ手配書の 1 行（ユーザーの状態）
+// ランクの異なる手配書（初級・上級など）で同じモブが対象になることがある（例: クラッグクロウ ×2 が初級と上級の両方）。
+// 1 回の討伐は両方に数えられるので、同じ targetId は 1 行にまとめ、討伐体数は多いほうを残す。
 type BillEntry = {
   targetId: number;
   neededKills: number;
