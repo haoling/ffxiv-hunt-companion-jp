@@ -37,6 +37,8 @@ npm run build:data
 
 生成元: `ffxiv-datamining` `d9582a62`、Teamcraft `acc77d4`（`meta.sources` にも入る）。
 
+湧き位置の中心座標（`spawns`、PLAN §5.3）が付いた対象は 335 / 478 体（FATE 以外のデイリー 297 / 341、エリート 38 / 41）。FATE のボス（96 体）は FATE の座標を使うので付けない。残りの 47 体は Teamcraft に実測が無く、地域名ラベルの位置で代用する（警告に出る）。
+
 | 項目 | 件数（新生・蒼天・紅蓮） | 全拡張（`--expansions all`、M0 と同じ） |
 |---|---|---|
 | 手配書の種類（`orderTypes`） | 10 | 22 |
