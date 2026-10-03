@@ -8,7 +8,15 @@
 - 出力: [`public/data/hunts.json`](../../public/data/hunts.json)（コミットする。パッチが来たら再生成する）
 - ゲーム内での確認: [`CHECKLIST.md`](./CHECKLIST.md)
 
-## 再生成の手順
+## 自動更新
+
+[`.github/workflows/update-data.yml`](../../.github/workflows/update-data.yml) が、毎週水曜（と手動実行）に下の手順で `hunts.json` を再生成し、データに変更があれば Draft の PR（ブランチ `bot/update-hunts-data`）を作る。`meta.sources` のコミットだけが変わったときは PR にしない。生成に失敗（警告ではなくエラー）したときは PR を作らずワークフローが失敗する。
+
+- 初回だけ、リポジトリの Settings > Actions > General で「Allow GitHub Actions to create and approve pull requests」を有効にする。
+- PR は GitHub Actions が作るため、ほかのワークフローは走らない。マージ後（main への push）に deploy が走る。
+- 変更内容（対象や名前の増減）は差分で確認してからマージする。
+
+## 再生成の手順（手動）
 
 Node 22.18 以上が必要（TypeScript をそのまま実行する）。
 
