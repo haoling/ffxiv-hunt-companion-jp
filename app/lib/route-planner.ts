@@ -35,6 +35,8 @@ export type RouteStop = {
   regionName?: string;
   /** 直前の地点から見た方角（近いときは省略） */
   direction?: string;
+  /** 湧き位置の中心座標（実測データがあるときだけ。ゲーム内のマップ座標） */
+  center?: Point;
   targets: HuntTarget[];
 };
 
@@ -54,7 +56,20 @@ export type Route = {
 
 type Point = { x: number; y: number };
 type Position = Point & { zoneId: number };
-type StopData = Point & { key: string; regionName?: string; targets: HuntTarget[] };
+type StopData = Point & {
+  key: string;
+  regionName?: string;
+  /** 実測の湧き位置の中心から決めた位置か（表示する座標） */
+  fromSpawns: boolean;
+  /** fromSpawns のとき、位置の平均を出すための合計と件数 */
+  sumX: number;
+  sumY: number;
+  count: number;
+  targets: HuntTarget[];
+};
+
+/** 湧き位置の中心が近い対象を同じ立ち寄り先にまとめる距離（マップ座標） */
+const SPAWN_MERGE_DISTANCE = 4;
 
 const EPS = 1e-9;
 
@@ -198,13 +213,34 @@ function legsTo(index: HuntIndex, nodes: Map<string, GraphNode>, key: string): M
   return legs.reverse();
 }
 
-/** 対象の位置を決めてまとめる。同じ地域名の対象は 1 つの立ち寄り先にする（FATE のボスは FATE の位置） */
+/**
+ * 対象の位置を決めてまとめる。FATE のボスは FATE の位置、湧き位置の実測があれば最も多い中心、
+ * なければ地域名ラベルの位置（同じ地域名の対象は 1 つの立ち寄り先）、それも無ければエリアの中央
+ */
 function buildStops(index: HuntIndex, zone: Zone, targets: HuntTarget[]): StopData[] {
   const stops = new Map<string, StopData>();
   for (const t of targets) {
     const region = t.regionId === undefined ? undefined : index.regions.get(t.regionId);
     let key: string;
     let point: Point;
+    const spawn = t.fate ? undefined : t.spawns?.[0];
+    if (spawn) {
+      // 中心が近い対象は同じ立ち寄り先にまとめる（中心は平均して更新する）
+      const near = [...stops.values()].find((s) => s.fromSpawns && Math.hypot(s.x - spawn.x, s.y - spawn.y) <= SPAWN_MERGE_DISTANCE);
+      if (near) {
+        near.targets.push(t);
+        near.sumX += spawn.x;
+        near.sumY += spawn.y;
+        near.count++;
+        near.x = near.sumX / near.count;
+        near.y = near.sumY / near.count;
+        near.regionName ??= region?.name;
+      } else {
+        key = `s:${t.id}`;
+        stops.set(key, { key, ...spawn, regionName: region?.name, fromSpawns: true, sumX: spawn.x, sumY: spawn.y, count: 1, targets: [t] });
+      }
+      continue;
+    }
     if (t.fate) {
       key = `f:${t.fate.id}`;
       point = t.fate;
@@ -219,7 +255,7 @@ function buildStops(index: HuntIndex, zone: Zone, targets: HuntTarget[]): StopDa
     }
     const stop = stops.get(key);
     if (stop) stop.targets.push(t);
-    else stops.set(key, { key, ...point, regionName: region?.name, targets: [t] });
+    else stops.set(key, { key, ...point, regionName: region?.name, fromSpawns: false, sumX: 0, sumY: 0, count: 0, targets: [t] });
   }
   return [...stops.values()];
 }
@@ -380,7 +416,8 @@ export function computeRoute(
     const routeStops: RouteStop[] = option.order.map((i) => {
       const s = stops[i];
       const stop: RouteStop = { key: s.key, regionName: s.regionName, targets: s.targets };
-      if (s.regionName || s.targets[0].fate) stop.direction = directionText(prev, s);
+      if (s.fromSpawns) stop.center = { x: Math.round(s.x * 10) / 10, y: Math.round(s.y * 10) / 10 };
+      if (s.regionName || s.fromSpawns || s.targets[0].fate) stop.direction = directionText(prev, s);
       prev = s;
       return stop;
     });

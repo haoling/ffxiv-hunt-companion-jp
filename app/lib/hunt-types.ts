@@ -14,6 +14,9 @@ export type OrderType = {
   pages: number;
 };
 
+/** モブの湧き位置のまとまり（実測の湧き位置をクラスタリングした中心）。x, y はゲーム内のマップ座標 */
+export type SpawnCluster = { x: number; y: number; /** まとまりに含まれる実測点の数 */ n: number };
+
 export type HuntTarget = {
   /** MobHuntTarget の行 ID */
   id: number;
@@ -25,6 +28,8 @@ export type HuntTarget = {
   regionId?: number;
   /** FATE のボスの場合の FATE。x, y はルート計算だけに使う（表示する地域名は regionId） */
   fate?: { id: number; name: string; x: number; y: number };
+  /** 実測の湧き位置の中心（実測点が多い順）。実測データの無いモブは省略し、地域名ラベルの位置で代用する */
+  spawns?: SpawnCluster[];
   kind: "daily" | "elite";
   expansion: Expansion;
   /** このモブが載っている手配書の種類（OrderType.id） */

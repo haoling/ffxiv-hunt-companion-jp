@@ -14,9 +14,9 @@ Node 22.18 以上が必要（TypeScript をそのまま実行する）。
 
 ```bash
 git clone --depth 1 https://github.com/xivapi/ffxiv-datamining ../ffxiv-datamining
-# Teamcraft は fates.json だけ取得する
+# Teamcraft は fates.json と monsters.json だけ取得する
 git clone --depth 1 --filter=blob:none --no-checkout https://github.com/ffxiv-teamcraft/ffxiv-teamcraft ../teamcraft
-git -C ../teamcraft sparse-checkout set --no-cone /libs/data/src/lib/json/fates.json
+git -C ../teamcraft sparse-checkout set --no-cone /libs/data/src/lib/json/fates.json /libs/data/src/lib/json/monsters.json
 git -C ../teamcraft checkout
 npm run build:data
 ```

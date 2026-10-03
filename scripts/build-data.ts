@@ -24,6 +24,7 @@ import type {
   HuntTarget,
   OrderType,
   Region,
+  SpawnCluster,
   Zone,
   ZoneExit,
 } from "../app/lib/hunt-types.ts";
@@ -190,6 +191,58 @@ const fatesFile = path.join(teamcraft, "fates.json");
 if (!fs.existsSync(fatesFile)) fail(`Teamcraft の fates.json が無い: ${fatesFile}（--teamcraft で指定する）`);
 const teamcraftFates = JSON.parse(fs.readFileSync(fatesFile, "utf8")) as Record<string, TeamcraftFate>;
 
+// ---- モブの湧き位置（Teamcraft の実測、MIT） ----
+
+type TeamcraftMonster = { baseid?: number; positions?: { map: number; fate: number; x: number; y: number }[] };
+const monstersFile = path.join(teamcraft, "monsters.json");
+if (!fs.existsSync(monstersFile)) fail(`Teamcraft の monsters.json が無い: ${monstersFile}（--teamcraft で指定する）`);
+const teamcraftMonsters = JSON.parse(fs.readFileSync(monstersFile, "utf8")) as Record<string, TeamcraftMonster>;
+
+/** 同じまとまりとみなす距離（マップ座標） */
+const SPAWN_CLUSTER_RADIUS = 4;
+/** 地域名ラベルからこの距離（マップ座標）以内のまとまりがあれば、それだけを使う */
+const SPAWN_REGION_RADIUS = 12;
+/** 1 体につき残すまとまりの数と、最大のまとまりに対する最小の割合 */
+const SPAWN_MAX_CLUSTERS = 3;
+const SPAWN_MIN_RATIO = 0.15;
+
+/** 実測点を、近いもの同士でまとめた中心にする（同じ座標の重複は除く）。実測点が多い順 */
+function clusterSpawns(points: { x: number; y: number }[]): SpawnCluster[] {
+  const unique = [...new Map(points.map((p) => [`${p.x},${p.y}`, p])).values()].sort((a, b) => a.x - b.x || a.y - b.y);
+  const clusters: { sx: number; sy: number; n: number }[] = [];
+  for (const p of unique) {
+    let best: (typeof clusters)[number] | undefined;
+    let bestD = SPAWN_CLUSTER_RADIUS;
+    for (const c of clusters) {
+      const d = Math.hypot(c.sx / c.n - p.x, c.sy / c.n - p.y);
+      if (d <= bestD) {
+        best = c;
+        bestD = d;
+      }
+    }
+    if (best) {
+      best.sx += p.x;
+      best.sy += p.y;
+      best.n++;
+    } else {
+      clusters.push({ sx: p.x, sy: p.y, n: 1 });
+    }
+  }
+  return clusters.map((c) => ({ x: round2(c.sx / c.n), y: round2(c.sy / c.n), n: c.n })).sort((a, b) => b.n - a.n);
+}
+
+/** モブの湧き位置のまとまり。実測データが無ければ undefined */
+function spawnsOf(bnpcNameId: string, mapId: string, regionPos: { x: number; y: number } | null): SpawnCluster[] | undefined {
+  const points = (teamcraftMonsters[bnpcNameId]?.positions ?? []).filter((p) => String(p.map) === mapId && !p.fate);
+  if (!points.length) return undefined;
+  let clusters = clusterSpawns(points);
+  if (regionPos) {
+    const near = clusters.filter((c) => Math.hypot(c.x - regionPos.x, c.y - regionPos.y) <= SPAWN_REGION_RADIUS);
+    if (near.length) clusters = near;
+  }
+  return clusters.filter((c) => c.n >= clusters[0].n * SPAWN_MIN_RATIO).slice(0, SPAWN_MAX_CLUSTERS);
+}
+
 // ---- 地域名（手配書の「生息場所」） ----
 
 /** 地域名ラベル（MapMarker の DataType 0）の位置。同じラベルが複数あれば平均 */
@@ -234,6 +287,10 @@ for (const [id, acc] of [...targetAcc].sort((a, b) => num(a[0]) - num(b[0]))) {
   } else if (acc.kind === "daily") {
     warn(`デイリーの対象 ${id}（${name}）に地域名が無い`);
   }
+
+  const spawns = spawnsOf(t.Name, t.Map, regionPos);
+  if (spawns) target.spawns = spawns;
+  else if (num(t.FATE) === 0) warn(`対象 ${id}（${name}）は Teamcraft に湧き位置が無いので地域名ラベルの位置で代用する`);
 
   if (num(t.FATE) > 0) {
     const fate = Fate.get(t.FATE);
@@ -428,6 +485,7 @@ fs.writeFileSync(outFile, JSON.stringify(data) + "\n");
 
 console.log(`出力: ${path.relative(process.cwd(), outFile)}（${(fs.statSync(outFile).size / 1024).toFixed(1)} KB）`);
 console.log(`片方向の出口を補ったもの: ${syntheticBack.size} 件`);
+console.log(`湧き位置が付いた対象: ${data.targets.filter((t) => t.spawns).length} / ${data.targets.length} 体`);
 console.log(
   `手配書 ${data.orderTypes.length} 種類、対象 ${data.targets.length} 体（デイリー ${data.targets.filter((t) => t.kind === "daily").length}、エリート ${data.targets.filter((t) => t.kind === "elite").length}、FATE ${data.targets.filter((t) => t.fate).length}）、` +
     `エリア ${data.zones.length}、出口 ${data.zones.reduce((s, z) => s + z.exits.length, 0)}、地域 ${data.regions.length}、エーテライト ${data.aetherytes.length}、街 ${data.cities.length}`,

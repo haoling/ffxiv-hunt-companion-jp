@@ -2,7 +2,7 @@
 
 import styles from "./hunt-app.module.css";
 import { availableCities, TRAVEL_LABELS } from "./lib/cities";
-import { huntIndex } from "./lib/hunt-data";
+import { huntIndex, spawnText } from "./lib/hunt-data";
 import type { HuntTarget } from "./lib/hunt-types";
 import { computeRoute, DEFAULT_ROUTE_OPTIONS, type TravelPart } from "./lib/route-planner";
 import { toggleDone, updateSettings } from "./lib/user-state";
@@ -85,6 +85,7 @@ export function RouteTab({ onOpenSettings }: { onOpenSettings: () => void }) {
                       <li key={stop.key}>
                         <span className={styles.stopPlace}>
                           → {stop.regionName ?? step.zoneName}
+                          {stop.center && ` (${fmt(stop.center.x)}, ${fmt(stop.center.y)}) 付近`}
                           {stop.direction && `（${stop.direction}へ）`}
                         </span>
                         <ul className={styles.list}>
@@ -124,7 +125,10 @@ function TargetCheck({ target, kills }: { target: HuntTarget; kills: number }) {
               FATE「{target.fate.name}」のボス（FATE が発生していないときは待つか、後回しに）
             </span>
           )}
-          {target.kind === "elite" && <span className={styles.rowSub}>エリート。湧き地点はエリア内のどこか</span>}
+          {target.spawns && target.spawns.length > 1 && (
+            <span className={styles.rowSub}>ほかの湧き位置: {spawnText(target.spawns.slice(1))}</span>
+          )}
+          {target.kind === "elite" && !target.spawns && <span className={styles.rowSub}>エリート。湧き地点はエリア内のどこか</span>}
         </span>
       </label>
     </li>

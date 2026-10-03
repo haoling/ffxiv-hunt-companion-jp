@@ -37,3 +37,8 @@ export function normalizeName(text: string): string {
     .replace(/[ぁ-ゖ]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60))
     .replace(/\s+/g, "");
 }
+
+/** 湧き位置の中心座標の表示（例: (5.2, 15.8)、(20.1, 9.0)） */
+export function spawnText(spawns: { x: number; y: number }[]): string {
+  return spawns.map((s) => `(${s.x.toFixed(1)}, ${s.y.toFixed(1)})`).join("、");
+}
